@@ -24,8 +24,8 @@ const adSchema = z.object({
   placement: z.enum(AD_PLACEMENTS),
   priority: z.coerce.number().min(0).max(100).default(0),
   active: z.boolean().default(true),
-  startDate: z.union([z.coerce.date(), z.literal(''), z.null()]).optional(),
-  endDate: z.union([z.coerce.date(), z.literal(''), z.null()]).optional(),
+  startDate: z.union([z.null(), z.literal(''), z.coerce.date()]).optional(),
+  endDate: z.union([z.null(), z.literal(''), z.coerce.date()]).optional(),
 });
 
 const clean = (d) => ({ ...d, startDate: d.startDate || null, endDate: d.endDate || null });

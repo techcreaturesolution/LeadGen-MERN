@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import AdSlot from '../components/AdSlot.jsx';
+import GoogleAd from '../components/GoogleAd.jsx';
 import NewSearchForm from '../components/NewSearchForm.jsx';
 import StatusBadge from '../components/StatusBadge.jsx';
 import { api } from '../lib/api.js';
@@ -66,6 +67,7 @@ export default function Dashboard() {
             </ul>
           </div>
           <AdSlot placement="inline" limit={2} />
+          <GoogleAd slot="inline" className="xl:hidden" />
         </div>
       </div>
     </div>

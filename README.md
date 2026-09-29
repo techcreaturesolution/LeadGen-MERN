@@ -57,6 +57,8 @@ Without any API keys the app still works: OpenStreetMap for businesses, rule-bas
 | `SERPAPI_KEY` | SerpAPI — Google Maps fallback **and** LinkedIn/Instagram discovery |
 | `GOOGLE_CSE_KEY`, `GOOGLE_CSE_CX` | Alternative for LinkedIn/Instagram discovery |
 | `OPENAI_API_KEY`, `OPENAI_MODEL` | Enables the LLM planner & AI summaries/notes |
+| `ADSENSE_CLIENT_ID`, `ADSENSE_SLOT_{BANNER,SIDEBAR,INLINE,RAIL}` | Google AdSense publisher ID and display ad unit IDs |
+| `ADSENSE_TEST_MODE`, `ADSENSE_DEMO` | `data-adtest="on"` for non-billed test ads; show demo creatives in unconfigured slots (default `true`) |
 | `MAX_CONCURRENT_JOBS`, `CRAWL_CONCURRENCY`, `CRAWL_TIMEOUT_MS`, `DAILY_SEARCH_LIMIT` | Tuning / limits |
 
 ### Google (Gmail) sign-in setup
@@ -71,6 +73,26 @@ Without any API keys the app still works: OpenStreetMap for businesses, rule-bas
 - SerpAPI: https://serpapi.com/manage-api-key → `SERPAPI_KEY`.
 - Programmable Search: create an engine searching the whole web → `GOOGLE_CSE_CX`, key from Custom Search JSON API → `GOOGLE_CSE_KEY`.
 
+### Google AdSense
+
+AdSense ads appear on the user-facing pages: login, dashboard, searches, search results and all leads. They are never shown on the Admin pages. Each ad sits in one of four slots:
+
+| Slot | Where | Size |
+|------|-------|------|
+| `banner` | Top of every user page, under result tables, login page | responsive leaderboard (728×90) |
+| `sidebar` | Left navigation | 200×200 |
+| `inline` | Right rail on wide screens (in the dashboard column on smaller screens) | 300×250 |
+| `rail` | Sticky right rail, `xl` screens | 300×600 |
+
+To turn on real ads:
+
+1. In AdSense, add your production domain as a site and get it approved.
+2. Create one **Display ad** unit for each slot.
+3. Set `ADSENSE_CLIENT_ID=ca-pub-…` and the matching `ADSENSE_SLOT_*` IDs in `server/.env`.
+4. Express serves `/ads.txt` automatically, built from `ADSENSE_CLIENT_ID`.
+
+Until then, every slot shows a labelled demo ad creative. Set `ADSENSE_DEMO=false` to hide the demo ads. The sponsored ads you manage in **Admin → Advertisements** keep running alongside AdSense.
+
 ## API overview
 
 | Method & path | Description |
@@ -82,6 +104,7 @@ Without any API keys the app still works: OpenStreetMap for businesses, rule-bas
 | `GET /api/leads?jobId&emailType&source&hasEmail&search` · `GET /api/leads/stats` | Leads |
 | `GET /api/leads/export?jobId=&count=20\|40\|60\|all` | Excel download |
 | `GET /api/ads?placement=` · `POST /api/ads/:id/click` | Dashboard ads |
+| `GET /api/adsense/config` · `GET /ads.txt` | AdSense publisher/slot config (public), ads.txt |
 | `/api/admin/{stats,ads,users}` | Admin (ads CRUD, user roles) |
 
 ## Scripts

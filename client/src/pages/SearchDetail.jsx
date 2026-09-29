@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import AdSlot from '../components/AdSlot.jsx';
+import GoogleAd from '../components/GoogleAd.jsx';
 import ExportButtons from '../components/ExportButtons.jsx';
 import LeadsTable from '../components/LeadsTable.jsx';
 import StatusBadge from '../components/StatusBadge.jsx';
@@ -115,6 +116,8 @@ export default function SearchDetail() {
           <LeadsTable leads={leads} />
         </div>
       )}
+
+      <GoogleAd slot="banner" />
 
       <div>
         <button type="button" className="text-sm text-slate-500 hover:text-slate-800" onClick={() => setShowLogs((v) => !v)}>

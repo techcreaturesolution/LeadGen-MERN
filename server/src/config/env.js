@@ -33,6 +33,18 @@ export const env = {
   ),
   enableFreeSearchFallback: bool(process.env.ENABLE_FREE_SEARCH_FALLBACK, false),
 
+  adsense: {
+    client: /^ca-pub-\d{10,20}$/.test(process.env.ADSENSE_CLIENT_ID || '') ? process.env.ADSENSE_CLIENT_ID : '',
+    slots: {
+      banner: process.env.ADSENSE_SLOT_BANNER || '',
+      sidebar: process.env.ADSENSE_SLOT_SIDEBAR || '',
+      inline: process.env.ADSENSE_SLOT_INLINE || '',
+      rail: process.env.ADSENSE_SLOT_RAIL || '',
+    },
+    testMode: bool(process.env.ADSENSE_TEST_MODE, false),
+    demo: bool(process.env.ADSENSE_DEMO, true),
+  },
+
   maxConcurrentJobs: Number(process.env.MAX_CONCURRENT_JOBS || 2),
   crawlConcurrency: Number(process.env.CRAWL_CONCURRENCY || 5),
   crawlTimeoutMs: Number(process.env.CRAWL_TIMEOUT_MS || 10000),

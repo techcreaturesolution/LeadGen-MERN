@@ -1,6 +1,7 @@
 import { GoogleLogin, GoogleOAuthProvider } from '@react-oauth/google';
 import { useEffect, useState } from 'react';
 import { Navigate, useNavigate } from 'react-router-dom';
+import GoogleAd from '../components/GoogleAd.jsx';
 import { api, errMsg } from '../lib/api.js';
 import { useAuth } from '../lib/auth.jsx';
 
@@ -47,7 +48,7 @@ export default function Login() {
   };
 
   return (
-    <div className="grid min-h-screen place-items-center bg-gradient-to-br from-blue-700 via-blue-800 to-slate-900 p-4">
+    <div className="flex min-h-screen flex-col items-center justify-center gap-6 bg-gradient-to-br from-blue-700 via-blue-800 to-slate-900 p-4">
       <div className="w-full max-w-md rounded-2xl bg-white p-8 shadow-xl">
         <div className="mb-6 flex items-center gap-3">
           <div className="grid h-10 w-10 place-items-center rounded-xl bg-blue-700 text-lg font-bold text-white">L</div>
@@ -91,6 +92,7 @@ export default function Login() {
 
         {error && <div className="mt-4 rounded-lg bg-red-50 p-3 text-sm text-red-700">{error}</div>}
       </div>
+      <GoogleAd slot="banner" className="w-full max-w-3xl rounded-xl bg-white/95 p-2" />
     </div>
   );
 }

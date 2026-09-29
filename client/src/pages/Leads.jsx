@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import ExportButtons from '../components/ExportButtons.jsx';
 import LeadsTable from '../components/LeadsTable.jsx';
 import { api, errMsg, SOURCE_LABELS } from '../lib/api.js';
+import GoogleAd from '../components/GoogleAd.jsx';
 
 export default function Leads() {
   const [filters, setFilters] = useState({ search: '', emailType: '', source: '', hasEmail: '' });
@@ -58,6 +59,7 @@ export default function Leads() {
         </select>
       </div>
       {error && <div className="rounded-lg bg-red-50 p-3 text-sm text-red-700">{error}</div>}
+      <GoogleAd slot="banner" />
       <div className="card p-0">
         <LeadsTable leads={data.items} showRank={false} />
       </div>

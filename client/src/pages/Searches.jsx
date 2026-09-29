@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
+import GoogleAd from '../components/GoogleAd.jsx';
 import StatusBadge from '../components/StatusBadge.jsx';
 import { api, errMsg, SOURCE_LABELS } from '../lib/api.js';
 
@@ -87,6 +88,7 @@ export default function Searches() {
           </tbody>
         </table>
       </div>
+      <GoogleAd slot="banner" />
       {pages > 1 && (
         <div className="flex items-center justify-end gap-2 text-sm">
           <button type="button" className="btn-secondary" disabled={page <= 1} onClick={() => setPage(page - 1)}>

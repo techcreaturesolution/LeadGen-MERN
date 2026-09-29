@@ -9,6 +9,7 @@ import { requireAdmin, requireAuth } from './middleware/auth.js';
 import { errorHandler, notFound } from './middleware/error.js';
 import adminRoutes from './routes/admin.js';
 import adRoutes from './routes/ads.js';
+import adsenseRoutes, { adsTxt } from './routes/adsense.js';
 import authRoutes from './routes/auth.js';
 import leadRoutes from './routes/leads.js';
 import searchRoutes from './routes/searches.js';
@@ -22,7 +23,9 @@ export function createApp() {
   if (env.nodeEnv !== 'test') app.use(morgan('dev'));
 
   app.get('/api/health', (_req, res) => res.json({ ok: true }));
+  app.get('/ads.txt', adsTxt);
   app.use('/api/auth', authRoutes);
+  app.use('/api/adsense', adsenseRoutes);
   app.use('/api/searches', requireAuth, searchRoutes);
   app.use('/api/leads', requireAuth, leadRoutes);
   app.use('/api/ads', requireAuth, adRoutes);

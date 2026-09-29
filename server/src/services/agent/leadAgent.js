@@ -16,13 +16,26 @@ export function rolePrefixes(role) {
   return ROLE_PREFIXES[role] || ROLE_PREFIXES.generic;
 }
 
+const titleCase = (s) => s.replace(/\b\w/g, (c) => c.toUpperCase());
+
+export function splitLocations(text) {
+  return [
+    ...new Set(
+      String(text || '')
+        .split(/\s*(?:&|,|\/|\+|\band\b|\bor\b)\s*/i)
+        .map((s) => titleCase(s.replace(/[.,\s]+$/, '').trim()))
+        .filter((s) => s.length > 1),
+    ),
+  ].slice(0, 5);
+}
+
 export function ruleBasedPlan(query) {
   const q = query.replace(/\s+/g, ' ').trim();
   const roleHit = ROLE_ALIASES.find((r) => r.re.test(q));
   const targetRole = roleHit?.role || 'generic';
 
   let location = '';
-  const locMatch = q.match(/\b(?:in|at|near|around|from)\s+([A-Za-z][A-Za-z .,-]{1,60})$/i);
+  const locMatch = q.match(/\b(?:in|at|near|around|from)\s+([A-Za-z][A-Za-z .,&/+-]{1,100})$/i);
   let rest = q;
   if (locMatch) {
     location = locMatch[1].replace(/[.,\s]+$/, '').trim();
@@ -36,8 +49,8 @@ export function ruleBasedPlan(query) {
   businessType = businessType.replace(STOP, ' ').replace(/\s+/g, ' ').trim();
   if (!businessType) businessType = 'companies';
 
-  const titleCase = (s) => s.replace(/\b\w/g, (c) => c.toUpperCase());
-  location = titleCase(location);
+  const locations = splitLocations(location);
+  location = locations.join(' & ');
   const keywords = businessType
     .split(' ')
     .filter((w) => w.length > 1 && !/^(companies|company|firms?|businesses|agenc(y|ies))$/i.test(w));
@@ -45,10 +58,11 @@ export function ruleBasedPlan(query) {
   return {
     businessType,
     location,
+    locations,
     targetRole,
     keywords: keywords.length ? keywords : [businessType],
     emailPrefixes: rolePrefixes(targetRole).slice(0, 8),
-    searchQueries: [`${businessType} in ${location}`.trim()],
+    searchQueries: locations.length ? locations.map((l) => `${businessType} in ${l}`) : [businessType],
     planner: 'rules',
   };
 }
@@ -59,16 +73,20 @@ export async function planSearch(query) {
   try {
     const out = await llmJson(
       'You are a B2B lead-generation planning agent. Convert the user request into a JSON search plan. ' +
-        'Return keys: businessType (short noun phrase used on Google Maps, e.g. "IT companies"), location (city/region, empty if none), ' +
-        'targetRole (one of: hr, sales, support, founder, generic), keywords (array of 1-4 short keywords), ' +
+        'Return keys: businessType (short noun phrase used on Google Maps, e.g. "IT companies", "engineering colleges"), ' +
+        'locations (array of every city/region mentioned, e.g. ["Gandhinagar","Ahmedabad"]; empty array if none), ' +
+        'keywords (array of 1-4 words that must describe every matching business, e.g. ["engineering","college"]), ' +
+        'targetRole (one of: hr, sales, support, founder, generic), ' +
         'emailPrefixes (array of likely mailbox prefixes for the target role, e.g. hr, careers, jobs), ' +
         'searchQueries (array of 1-3 Google Maps style queries).',
       query,
     );
     if (!out?.businessType) return base;
+    const locations = (Array.isArray(out.locations) && out.locations.length ? out.locations.flatMap(splitLocations) : base.locations).slice(0, 5);
     return {
       businessType: String(out.businessType).slice(0, 80),
-      location: String(out.location || base.location).slice(0, 80),
+      location: locations.join(' & '),
+      locations,
       targetRole: ['hr', 'sales', 'support', 'founder', 'generic'].includes(out.targetRole) ? out.targetRole : base.targetRole,
       keywords: (Array.isArray(out.keywords) ? out.keywords : base.keywords).map(String).slice(0, 4),
       emailPrefixes: (Array.isArray(out.emailPrefixes) ? out.emailPrefixes : base.emailPrefixes).map((s) => String(s).toLowerCase()).slice(0, 10),
@@ -100,7 +118,16 @@ export function rankEmails(emails, plan, website) {
   });
   const order = { hr: 1, generic: 2, sales: 3, support: 4, other: 5, personal: 6 };
   order[plan.targetRole] = 0;
-  scored.sort((a, b) => (order[a.category] ?? 7) - (order[b.category] ?? 7) || b.confidence - a.confidence);
+  const ownDomain = (e) => {
+    const d = e.email.split('@')[1];
+    return Boolean(siteDomain) && (d === siteDomain || siteDomain.endsWith(`.${d}`) || d.endsWith(`.${siteDomain}`));
+  };
+  scored.sort(
+    (a, b) =>
+      Number(ownDomain(b)) - Number(ownDomain(a)) ||
+      (order[a.category] ?? 7) - (order[b.category] ?? 7) ||
+      b.confidence - a.confidence,
+  );
   return scored;
 }
 
@@ -119,7 +146,7 @@ export function scoreLead(lead, plan) {
 export async function summarizeJob(query, plan, leads) {
   const withEmail = leads.filter((l) => l.primaryEmail).length;
   const withRole = leads.filter((l) => l.primaryEmailCategory === plan.targetRole).length;
-  const fallback = `Found ${leads.length} ${plan.businessType} leads${plan.location ? ` in ${plan.location}` : ''}; ${withEmail} have an email and ${withRole} have a ${plan.targetRole.toUpperCase()} mailbox.`;
+  const fallback = `Found ${leads.length} verified ${plan.businessType} leads${plan.location ? ` in ${plan.location}` : ''}; ${withEmail} have an email and ${withRole} have a ${plan.targetRole.toUpperCase()} mailbox.`;
   if (!llmEnabled() || !leads.length) return { summary: fallback, notes: {} };
   try {
     const compact = leads.slice(0, 60).map((l, i) => ({

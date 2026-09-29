@@ -45,6 +45,16 @@ export const env = {
     demo: bool(process.env.ADSENSE_DEMO, true),
   },
 
+  videoAd: {
+    required: bool(process.env.VIDEO_AD_REQUIRED, true),
+    seconds: Math.max(5, Number(process.env.VIDEO_AD_SECONDS || 60)),
+    exemptAdmins: bool(process.env.VIDEO_AD_EXEMPT_ADMINS, true),
+    vastTag: /^https:\/\//.test(process.env.VIDEO_AD_VAST_TAG || '') ? process.env.VIDEO_AD_VAST_TAG : '',
+  },
+
+  emailMxCheck: bool(process.env.EMAIL_MX_CHECK, true),
+  leadMatchMode: process.env.LEAD_MATCH_MODE === 'balanced' ? 'balanced' : 'strict',
+
   maxConcurrentJobs: Number(process.env.MAX_CONCURRENT_JOBS || 2),
   crawlConcurrency: Number(process.env.CRAWL_CONCURRENCY || 5),
   crawlTimeoutMs: Number(process.env.CRAWL_TIMEOUT_MS || 10000),

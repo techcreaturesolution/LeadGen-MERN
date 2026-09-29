@@ -24,7 +24,18 @@ export default function LeadsTable({ leads, showRank = true }) {
             <tr key={l._id} className="hover:bg-slate-50">
               {showRank && <td className="td text-slate-400">{l.rank}</td>}
               <td className="td max-w-xs">
-                <div className="font-medium text-slate-900">{l.name}</div>
+                <div className="font-medium text-slate-900">
+                  {l.name}
+                  {l.verification && (
+                    <span
+                      title={l.matchReason}
+                      className={`badge ml-2 align-middle ${l.verification === 'verified' ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700'}`}
+                    >
+                      {l.verification === 'verified' ? 'Verified' : 'Likely'}
+                      {l.aiVerified ? ' · AI' : ''}
+                    </span>
+                  )}
+                </div>
                 <div className="text-xs text-slate-500">{[l.category, l.address || l.city].filter(Boolean).join(' · ')}</div>
                 {l.aiNote && <div className="mt-1 text-xs italic text-blue-700">AI: {l.aiNote}</div>}
               </td>

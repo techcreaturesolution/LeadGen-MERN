@@ -14,19 +14,22 @@ const httpUrl = z
   .url()
   .refine((u) => /^https?:\/\//i.test(u), 'Must be an http(s) URL');
 
-const adSchema = z.object({
-  advertiser: z.string().trim().min(1).max(100),
-  title: z.string().trim().min(1).max(120),
-  description: z.string().trim().max(300).optional().default(''),
-  imageUrl: z.union([httpUrl, z.literal('')]).optional(),
-  targetUrl: httpUrl,
-  ctaText: z.string().trim().max(30).optional(),
-  placement: z.enum(AD_PLACEMENTS),
-  priority: z.coerce.number().min(0).max(100).default(0),
-  active: z.boolean().default(true),
-  startDate: z.union([z.null(), z.literal(''), z.coerce.date()]).optional(),
-  endDate: z.union([z.null(), z.literal(''), z.coerce.date()]).optional(),
-});
+const adSchema = z
+  .object({
+    advertiser: z.string().trim().min(1).max(100),
+    title: z.string().trim().min(1).max(120),
+    description: z.string().trim().max(300).optional().default(''),
+    imageUrl: z.union([httpUrl, z.literal('')]).optional(),
+    videoUrl: z.union([httpUrl, z.literal('')]).optional(),
+    targetUrl: httpUrl,
+    ctaText: z.string().trim().max(30).optional(),
+    placement: z.enum(AD_PLACEMENTS),
+    priority: z.coerce.number().min(0).max(100).default(0),
+    active: z.boolean().default(true),
+    startDate: z.union([z.null(), z.literal(''), z.coerce.date()]).optional(),
+    endDate: z.union([z.null(), z.literal(''), z.coerce.date()]).optional(),
+  })
+  .refine((d) => d.placement !== 'video' || d.videoUrl, { path: ['videoUrl'], message: 'Video ads need a video URL (MP4/WebM)' });
 
 const clean = (d) => ({ ...d, startDate: d.startDate || null, endDate: d.endDate || null });
 
@@ -36,9 +39,9 @@ router.get('/stats', async (_req, res) => {
     SearchJob.countDocuments(),
     Lead.countDocuments(),
     Ad.countDocuments({ active: true }),
-    Ad.aggregate([{ $group: { _id: null, impressions: { $sum: '$impressions' }, clicks: { $sum: '$clicks' } } }]),
+    Ad.aggregate([{ $group: { _id: null, impressions: { $sum: '$impressions' }, clicks: { $sum: '$clicks' }, videoViews: { $sum: '$completedViews' } } }]),
   ]);
-  res.json({ users, searches, leads, activeAds: ads, impressions: adAgg[0]?.impressions || 0, clicks: adAgg[0]?.clicks || 0 });
+  res.json({ users, searches, leads, activeAds: ads, impressions: adAgg[0]?.impressions || 0, clicks: adAgg[0]?.clicks || 0, videoViews: adAgg[0]?.videoViews || 0 });
 });
 
 router.get('/ads', async (_req, res) => {

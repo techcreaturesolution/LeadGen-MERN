@@ -6,6 +6,7 @@ const emailSchema = new mongoose.Schema(
     category: { type: String, enum: ['hr', 'sales', 'support', 'generic', 'personal', 'other'], default: 'other' },
     foundOn: String,
     confidence: { type: Number, default: 0.5 },
+    mxValid: Boolean,
   },
   { _id: false },
 );
@@ -35,10 +36,17 @@ const leadSchema = new mongoose.Schema(
     score: { type: Number, default: 0 },
     aiNote: String,
     rank: Number,
+    verification: { type: String, enum: ['verified', 'likely'] },
+    matchReason: String,
+    matchedLocation: String,
+    aiVerified: Boolean,
+    siteTitle: String,
+    dedupeKey: { type: String, index: true },
   },
   { timestamps: true },
 );
 
 leadSchema.index({ job: 1, rank: 1 });
+leadSchema.index({ job: 1, dedupeKey: 1 }, { unique: true, partialFilterExpression: { dedupeKey: { $type: 'string' } } });
 
 export const Lead = mongoose.model('Lead', leadSchema);

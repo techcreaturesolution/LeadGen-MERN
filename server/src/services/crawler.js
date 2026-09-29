@@ -23,6 +23,8 @@ function parsePage(html, baseUrl) {
   $('[data-cfemail]').each((_i, el) => {
     extractEmails(decodeCfEmail($(el).attr('data-cfemail') || '')).forEach((e) => emails.add(e));
   });
+  const title = $('title').first().text().replace(/\s+/g, ' ').trim().slice(0, 200);
+  const description = ($('meta[name="description"]').attr('content') || $('meta[property="og:description"]').attr('content') || '').replace(/\s+/g, ' ').trim().slice(0, 300);
   $('script, style, noscript, svg').remove();
   const text = cheerio
     .load(($('body').html() || '').replace(/<[^>]+>/g, ' '))
@@ -60,13 +62,13 @@ function parsePage(html, baseUrl) {
     if (m) phone = m.trim();
   }
 
-  return { emails: [...emails], links, phone };
+  return { emails: [...emails], links, phone, title, description };
 }
 
 export async function crawlWebsite(website, { maxPages = 5 } = {}) {
   const start = normalizeUrl(website);
   if (!start) return { emails: [], pages: [] };
-  const result = { emails: new Map(), pages: [], linkedinUrl: null, instagramUrl: null, facebookUrl: null, phone: null };
+  const result = { emails: new Map(), pages: [], linkedinUrl: null, instagramUrl: null, facebookUrl: null, phone: null, siteTitle: null, siteDescription: null };
   const queue = [start];
   const seen = new Set();
   let origin;
@@ -100,6 +102,8 @@ export async function crawlWebsite(website, { maxPages = 5 } = {}) {
     result.instagramUrl ||= parsed.links.instagram;
     result.facebookUrl ||= parsed.links.facebook;
     result.phone ||= parsed.phone;
+    result.siteTitle ||= parsed.title || null;
+    result.siteDescription ||= parsed.description || null;
     const next = [...new Set(parsed.links.internal)]
       .filter((u) => !seen.has(u))
       .sort((a, b) => Number(/career|job|hr|recruit|hiring/i.test(b)) - Number(/career|job|hr|recruit|hiring/i.test(a)));
@@ -114,5 +118,7 @@ export async function crawlWebsite(website, { maxPages = 5 } = {}) {
     instagramUrl: result.instagramUrl,
     facebookUrl: result.facebookUrl,
     phone: result.phone,
+    siteTitle: result.siteTitle,
+    siteDescription: result.siteDescription,
   };
 }

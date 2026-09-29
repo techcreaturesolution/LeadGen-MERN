@@ -12,6 +12,7 @@ const searchJobSchema = new mongoose.Schema(
     plan: {
       businessType: String,
       location: String,
+      locations: [String],
       targetRole: String,
       keywords: [String],
       emailPrefixes: [String],
@@ -27,7 +28,25 @@ const searchJobSchema = new mongoose.Schema(
       withRoleEmail: { type: Number, default: 0 },
     },
     sourceStats: { type: Map, of: Number, default: {} },
+    quality: {
+      rawResults: Number,
+      duplicatesRemoved: Number,
+      rejected: Number,
+      likely: Number,
+      verified: Number,
+      emailsRemoved: Number,
+      aiChecked: Boolean,
+    },
     logs: [{ at: { type: Date, default: Date.now }, level: String, message: String }],
+    adGate: {
+      required: { type: Boolean, default: false },
+      seconds: Number,
+      ad: { type: mongoose.Schema.Types.ObjectId, ref: 'Ad' },
+      watchedMs: { type: Number, default: 0 },
+      lastBeatAt: Date,
+      startedAt: Date,
+      completedAt: Date,
+    },
     leadCount: { type: Number, default: 0 },
     summary: String,
     error: String,
@@ -36,5 +55,17 @@ const searchJobSchema = new mongoose.Schema(
   },
   { timestamps: true },
 );
+
+export const isAdLocked = (job) => Boolean(job?.adGate?.required && !job.adGate.completedAt);
+
+export function publicAdGate(job) {
+  const g = job.adGate || {};
+  return {
+    required: Boolean(g.required),
+    seconds: g.seconds || 0,
+    watchedSeconds: Math.floor((g.watchedMs || 0) / 1000),
+    completed: !isAdLocked(job),
+  };
+}
 
 export const SearchJob = mongoose.model('SearchJob', searchJobSchema);

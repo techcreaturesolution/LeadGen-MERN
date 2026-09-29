@@ -2,6 +2,7 @@ import { env } from '../../config/env.js';
 import { http } from '../../utils/http.js';
 
 const TAG_RULES = [
+  { match: /college|universit|polytechnic/i, filters: ['["amenity"~"^(college|university)$"]', '["office"="educational_institution"]'] },
   { match: /\b(it|software|tech|technology|saas|web|app|digital|computer)\b/i, filters: ['["office"~"^(it|company|software|telecommunication)$"]', '["shop"="computer"]'] },
   { match: /restaurant|cafe|food|hotel/i, filters: ['["amenity"~"^(restaurant|cafe|fast_food)$"]', '["tourism"="hotel"]'] },
   { match: /hospital|clinic|doctor|health|pharma/i, filters: ['["amenity"~"^(hospital|clinic|doctors|pharmacy)$"]'] },

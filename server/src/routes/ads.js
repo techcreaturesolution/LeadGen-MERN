@@ -5,7 +5,7 @@ import { HttpError } from '../utils/httpError.js';
 
 const router = Router();
 
-function activeFilter(placement) {
+export function activeFilter(placement) {
   const now = new Date();
   return {
     active: true,

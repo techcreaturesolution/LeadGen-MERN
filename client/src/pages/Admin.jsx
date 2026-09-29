@@ -7,6 +7,7 @@ const EMPTY = {
   title: '',
   description: '',
   imageUrl: '',
+  videoUrl: '',
   targetUrl: '',
   ctaText: 'Learn more',
   placement: 'dashboard_banner',
@@ -16,7 +17,7 @@ const EMPTY = {
   endDate: '',
 };
 
-const PLACEMENTS = { dashboard_banner: 'Dashboard banner', sidebar: 'Sidebar', inline: 'Inline card' };
+const PLACEMENTS = { dashboard_banner: 'Dashboard banner', sidebar: 'Sidebar', inline: 'Inline card', video: 'Video (before search results)' };
 const toDate = (d) => (d ? new Date(d).toISOString().slice(0, 10) : '');
 
 function AdForm({ initial, onSaved, onCancel }) {
@@ -31,7 +32,7 @@ function AdForm({ initial, onSaved, onCancel }) {
     setError('');
     const body = { ...form, priority: Number(form.priority) };
     delete body._id;
-    for (const k of ['impressions', 'clicks', 'createdAt', 'updatedAt', 'createdBy', '__v']) delete body[k];
+    for (const k of ['impressions', 'clicks', 'completedViews', 'createdAt', 'updatedAt', 'createdBy', '__v']) delete body[k];
     try {
       if (initial._id) await api.put(`/admin/ads/${initial._id}`, body);
       else await api.post('/admin/ads', body);
@@ -67,6 +68,12 @@ function AdForm({ initial, onSaved, onCancel }) {
         Image URL (optional)
         <input className="input mt-1" type="url" placeholder="https://" value={form.imageUrl} onChange={set('imageUrl')} />
       </label>
+      {form.placement === 'video' && (
+        <label className="text-sm md:col-span-2">
+          Video URL (MP4/WebM, ideally 60s; it loops until the required watch time is reached)
+          <input className="input mt-1" type="url" placeholder="https://cdn.example.com/ad.mp4" value={form.videoUrl || ''} onChange={set('videoUrl')} required />
+        </label>
+      )}
       <label className="text-sm">
         Placement
         <select className="input mt-1" value={form.placement} onChange={set('placement')}>
@@ -183,6 +190,7 @@ export default function Admin() {
             ['Active ads', stats.activeAds],
             ['Ad impressions', stats.impressions],
             ['Ad clicks', stats.clicks],
+            ['Video ad views', stats.videoViews],
           ].map(([l, v]) => (
             <div key={l} className="card">
               <div className="text-xs text-slate-500">{l}</div>
@@ -249,7 +257,10 @@ export default function Admin() {
                         </a>
                       </div>
                     </td>
-                    <td className="td text-xs">{PLACEMENTS[a.placement]}</td>
+                    <td className="td text-xs">
+                      {PLACEMENTS[a.placement]}
+                      {a.placement === 'video' && <div className="text-slate-500">{a.completedViews || 0} full views</div>}
+                    </td>
                     <td className="td text-xs">
                       {toDate(a.startDate) || 'now'} → {toDate(a.endDate) || '∞'}
                     </td>

@@ -48,6 +48,10 @@ test('relevance agent verifies engineering colleges and rejects schools, hostels
   const far = v({ name: 'SVNIT Engineering College', category: 'college', address: 'Ichchhanath, Surat, Gujarat' });
   assert.equal(far.verification, 'rejected');
   assert.equal(v({ name: 'GEC Gandhinagar', category: 'college', address: 'Sector 28, Gandhinagar' }).matchedLocation, 'Gandhinagar');
+  const inArea = v({ name: 'Karnavati University', category: 'university', address: 'Uvarsad', areaMatched: 'Gandhinagar' });
+  assert.equal(inArea.matchedLocation, 'Gandhinagar');
+  assert.notEqual(inArea.verification, 'rejected');
+  assert.equal(v({ name: 'Indian Institute of Management', category: 'college', city: 'Ahmedabad', siteDescription: 'technology and management' }).verification, 'likely');
 });
 
 test('IT company relevance uses category and website title', () => {

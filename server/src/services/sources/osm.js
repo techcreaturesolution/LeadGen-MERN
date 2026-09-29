@@ -60,6 +60,7 @@ export async function searchOsm(plan, limit, log) {
             lat: e.lat ?? e.center?.lat,
             lng: e.lon ?? e.center?.lon,
             source: 'google_maps',
+            areaMatched: plan.location,
           };
         });
       rows.sort((a, b) => Number(Boolean(b.website || b.email)) - Number(Boolean(a.website || a.email)));

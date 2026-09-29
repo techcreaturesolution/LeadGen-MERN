@@ -29,7 +29,7 @@ export const env = {
   openaiModel: process.env.OPENAI_MODEL || 'gpt-4o-mini',
   overpassUrls: list(
     process.env.OVERPASS_URLS ||
-      'https://overpass-api.de/api/interpreter,https://overpass.kumi.systems/api/interpreter,https://overpass.private.coffee/api/interpreter',
+      'https://overpass-api.de/api/interpreter,https://maps.mail.ru/osm/tools/overpass/api/interpreter,https://overpass.kumi.systems/api/interpreter,https://overpass.private.coffee/api/interpreter',
   ),
   enableFreeSearchFallback: bool(process.env.ENABLE_FREE_SEARCH_FALLBACK, false),
 

@@ -13,6 +13,7 @@ Other features:
 
 - **Sign in with Google (Gmail)** — Google ID token verified on the server, app JWT session. Optional domain restriction, admin list by email.
 - **Sponsored ads in the dashboard** — admins create ads for other companies (banner, sidebar, inline placements, priority, schedule); impressions & clicks are tracked with CTR in the admin panel.
+- **New Jobs** — job seekers (Google sign-in) pick Fresher / Experienced, type a prompt, choose category, **education qualification**, state and city, and get a table of Indian jobs with description, company, address, email, phone, salary, source and a direct **Apply** link to the original posting. See [New Jobs](#new-jobs).
 - Search history with live progress & agent log, all-leads view with filters, per-user daily search limit, job queue.
 
 ## Stack
@@ -93,6 +94,37 @@ To turn on real ads:
 
 Until then, every slot shows a labelled demo ad creative. Set `ADSENSE_DEMO=false` to hide the demo ads. The sponsored ads you manage in **Admin → Advertisements** keep running alongside AdSense.
 
+## New Jobs
+
+`/jobs` aggregates public job postings from across India:
+
+| Source | How |
+|--------|-----|
+| Jobs posted by admins on this portal | MongoDB (`Admin → Jobs`) |
+| Google Jobs (Google's index of Naukri, Indeed, LinkedIn, Apna, WorkIndia, foundit, company career pages, …) | SerpAPI `engine=google_jobs` (`SERPAPI_KEY`) |
+| Job boards (Apna, WorkIndia, Naukri, Indeed, LinkedIn jobs, foundit, Shine, Internshala) | `site:` web search (SerpAPI or Google CSE) |
+| Public hiring posts on X, LinkedIn posts, Facebook, Instagram | `site:` web search |
+| Company career pages | web search for "careers / apply now" pages |
+
+For each search the **job agent**:
+
+1. Builds the query from the prompt, category, education and location (OpenAI if configured, otherwise rules).
+2. Collects results in parallel, then normalises them: experience level, education (10th, 12th, ITI, Diploma, any graduate, B.E./B.Tech, B.Com, MBA, …), city / state, posted date and platform.
+3. Removes duplicates (same title + company + city) and merges their apply links.
+4. **Verifies** listings against the original job page. A job counts as verified when it's a portal job, a Google Jobs listing, a page with matching `JobPosting` structured data, or a page where the AI agent (`OPENAI_API_KEY`) confirms it is an open posting. The agent only keeps values that appear word for word in the page text. Expired, closed, filled or 404 postings are dropped. **Show only verified jobs** is on by default.
+5. Enriches jobs with public contact details: emails and phones from the posting, the company's Google Maps listing and its website contact pages.
+
+Seekers only see jobs that fit their qualification. For example, a B.Tech seeker gets "any graduate" and "12th pass" jobs but not B.Com-only jobs. Jobs that don't state an education requirement still appear.
+
+**Video ads:** every job search opens a video ad that plays for `VIDEO_AD_SECONDS` (default 60). The search runs in the background and results show when the ad ends. Ads are picked in this order:
+1. `VIDEO_AD_TAG_URL`, a VAST ad tag from Google Ad Manager / AdSense for video, played with the Google IMA SDK.
+2. Admin sponsored ads with the **Video ad** placement (MP4 URL).
+3. Demo creatives.
+
+AdSense display units also appear on the New Jobs page.
+
+`npm --prefix server run seed:jobs` inserts 10 sample portal jobs for local testing.
+
 ## API overview
 
 | Method & path | Description |
@@ -105,13 +137,16 @@ Until then, every slot shows a labelled demo ad creative. Set `ADSENSE_DEMO=fals
 | `GET /api/leads/export?jobId=&count=20\|40\|60\|all` | Excel download |
 | `GET /api/ads?placement=` · `POST /api/ads/:id/click` | Dashboard ads |
 | `GET /api/adsense/config` · `GET /ads.txt` | AdSense publisher/slot config (public), ads.txt |
-| `/api/admin/{stats,ads,users}` | Admin (ads CRUD, user roles) |
+| `GET /api/jobs/meta` | Job categories, education levels, states, providers |
+| `POST /api/jobs/search` `{ level, prompt, category, education, state, city, postedWithin, verifiedOnly }` | Aggregate, verify and return jobs |
+| `GET /api/jobs/searches` · `GET /api/jobs/:id` · `POST /api/jobs/:id/apply` | Job search history, job details, apply redirect URL (click tracked) |
+| `/api/admin/{stats,ads,users,jobs}` | Admin (ads CRUD, portal jobs CRUD, user roles) |
 
 ## Scripts
 
 ```bash
 npm run lint     # server + client ESLint
-npm test         # server unit tests (planner, email extraction/ranking)
+npm test         # server unit tests (planner, email extraction/ranking, job parsing/education/verification)
 npm run build    # client production build
 npm start        # production: Express serves client/dist and the API on one port
 ```

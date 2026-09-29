@@ -33,6 +33,13 @@ export default function Dashboard() {
         <p className="text-sm text-slate-500">Generate targeted B2B leads and export them to Excel.</p>
       </div>
       <AdSlot placement="dashboard_banner" />
+      <Link to="/jobs" className="card flex flex-wrap items-center justify-between gap-3 border-green-200 bg-gradient-to-r from-green-50 to-white hover:shadow">
+        <div>
+          <div className="font-semibold text-slate-900">Looking for a job? Try New Jobs</div>
+          <div className="text-sm text-slate-600">Fresher or experienced · filter by education, state and city · verified listings with direct apply links.</div>
+        </div>
+        <span className="btn-primary">Find jobs →</span>
+      </Link>
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
         <Stat label="Searches" value={stats?.searches} />
         <Stat label="Total leads" value={stats?.totalLeads} />

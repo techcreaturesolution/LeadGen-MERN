@@ -11,6 +11,7 @@ import adminRoutes from './routes/admin.js';
 import adRoutes from './routes/ads.js';
 import adsenseRoutes, { adsTxt } from './routes/adsense.js';
 import authRoutes from './routes/auth.js';
+import jobRoutes from './routes/jobs.js';
 import leadRoutes from './routes/leads.js';
 import searchRoutes from './routes/searches.js';
 
@@ -28,6 +29,7 @@ export function createApp() {
   app.use('/api/adsense', adsenseRoutes);
   app.use('/api/searches', requireAuth, searchRoutes);
   app.use('/api/leads', requireAuth, leadRoutes);
+  app.use('/api/jobs', requireAuth, jobRoutes);
   app.use('/api/ads', requireAuth, adRoutes);
   app.use('/api/admin', requireAuth, requireAdmin, adminRoutes);
   app.use('/api', notFound);

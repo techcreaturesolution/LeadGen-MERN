@@ -24,6 +24,10 @@ export default function Layout() {
           <NavLink to="/" end className={linkCls}>
             Dashboard
           </NavLink>
+          <NavLink to="/jobs" className={linkCls}>
+            New Jobs
+            <span className="badge ml-auto bg-green-100 text-green-700">New</span>
+          </NavLink>
           <NavLink to="/searches" className={linkCls}>
             Searches
           </NavLink>
@@ -32,7 +36,7 @@ export default function Layout() {
           </NavLink>
           {user?.role === 'admin' && (
             <NavLink to="/admin" className={linkCls}>
-              Admin · Ads &amp; users
+              Admin · Ads, jobs &amp; users
             </NavLink>
           )}
         </nav>
@@ -62,6 +66,7 @@ export default function Layout() {
           <span className="font-semibold">LeadGen AI</span>
           <nav className="flex gap-3 text-sm">
             <NavLink to="/">Home</NavLink>
+            <NavLink to="/jobs">New Jobs</NavLink>
             <NavLink to="/searches">Searches</NavLink>
             <NavLink to="/leads">Leads</NavLink>
             {user?.role === 'admin' && <NavLink to="/admin">Admin</NavLink>}

@@ -6,6 +6,7 @@
     "start": "node src/index.js",
     "lint": "eslint .",
     "seed:ads": "node scripts/seed-ads.js",
+    "seed:jobs": "node scripts/seed-jobs.js",
     "test": "node --test"
   },
   "keywords": [],

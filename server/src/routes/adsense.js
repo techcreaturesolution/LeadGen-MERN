@@ -4,8 +4,8 @@ import { env } from '../config/env.js';
 const router = Router();
 
 router.get('/config', (_req, res) => {
-  const { client, slots, testMode, demo } = env.adsense;
-  res.json({ client: client || null, slots, testMode, demo });
+  const { client, slots, testMode, demo, videoAdTagUrl, videoAdSeconds } = env.adsense;
+  res.json({ client: client || null, slots, testMode, demo, video: { adTagUrl: videoAdTagUrl || null, seconds: videoAdSeconds } });
 });
 
 export function adsTxt(_req, res) {

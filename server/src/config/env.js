@@ -43,12 +43,17 @@ export const env = {
     },
     testMode: bool(process.env.ADSENSE_TEST_MODE, false),
     demo: bool(process.env.ADSENSE_DEMO, true),
+    videoAdTagUrl: /^https:\/\//i.test(process.env.VIDEO_AD_TAG_URL || '') ? process.env.VIDEO_AD_TAG_URL : '',
+    videoAdSeconds: Math.min(300, Math.max(5, Number(process.env.VIDEO_AD_SECONDS || 60))),
   },
 
   maxConcurrentJobs: Number(process.env.MAX_CONCURRENT_JOBS || 2),
   crawlConcurrency: Number(process.env.CRAWL_CONCURRENCY || 5),
   crawlTimeoutMs: Number(process.env.CRAWL_TIMEOUT_MS || 10000),
   dailySearchLimit: Number(process.env.DAILY_SEARCH_LIMIT || 25),
+  dailyJobSearchLimit: Number(process.env.DAILY_JOB_SEARCH_LIMIT || 50),
+  jobEnrichLimit: Number(process.env.JOB_ENRICH_LIMIT || 12),
+  jobSearchBudgetMs: Number(process.env.JOB_SEARCH_BUDGET_MS || 40000),
 };
 
 if (env.nodeEnv === 'production' && env.jwtSecret === 'change-me-in-production') {

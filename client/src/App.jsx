@@ -3,6 +3,7 @@ import Layout from './components/Layout.jsx';
 import { useAuth } from './lib/auth.jsx';
 import Admin from './pages/Admin.jsx';
 import Dashboard from './pages/Dashboard.jsx';
+import Jobs from './pages/Jobs.jsx';
 import Leads from './pages/Leads.jsx';
 import Login from './pages/Login.jsx';
 import SearchDetail from './pages/SearchDetail.jsx';
@@ -31,6 +32,7 @@ export default function App() {
         <Route path="searches" element={<Searches />} />
         <Route path="searches/:id" element={<SearchDetail />} />
         <Route path="leads" element={<Leads />} />
+        <Route path="jobs" element={<Jobs />} />
         <Route
           path="admin"
           element={

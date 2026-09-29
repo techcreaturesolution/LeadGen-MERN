@@ -81,11 +81,26 @@ export function mapsProvider() {
   return 'openstreetmap';
 }
 
-export async function searchGoogleMaps(plan, limit, log) {
+async function searchOneLocation(plan, limit, log) {
   const textQuery = [plan.businessType, plan.location && `in ${plan.location}`].filter(Boolean).join(' ');
   const provider = mapsProvider();
   log('info', `Maps: searching "${textQuery}" via ${provider}`);
   if (provider === 'google_places') return placesTextSearch(textQuery, limit);
   if (provider === 'serpapi_google_maps') return serpApiMaps(textQuery, limit);
   return searchOsm(plan, limit, log);
+}
+
+export async function searchGoogleMaps(plan, limit, log) {
+  const locations = plan.locations?.length ? plan.locations : [plan.location || ''];
+  const rows = [];
+  for (const location of locations) {
+    try {
+      const found = await searchOneLocation({ ...plan, location }, limit, log);
+      rows.push(...found.map((r) => ({ ...r, searchLocation: location || undefined })));
+    } catch (err) {
+      if (locations.length === 1) throw err;
+      log('error', `Maps (${location}) failed: ${err.response?.data?.error?.message || err.message}`);
+    }
+  }
+  return rows;
 }

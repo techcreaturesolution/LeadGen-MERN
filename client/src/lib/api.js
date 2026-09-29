@@ -26,7 +26,20 @@ export function errMsg(err) {
 }
 
 export async function downloadExport(params) {
-  const res = await api.get('/leads/export', { params, responseType: 'blob' });
+  let res;
+  try {
+    res = await api.get('/leads/export', { params, responseType: 'blob' });
+  } catch (err) {
+    const body = err.response?.data;
+    if (body instanceof Blob) {
+      try {
+        err.response.data = JSON.parse(await body.text());
+      } catch {
+        /* keep original error */
+      }
+    }
+    throw err;
+  }
   const disposition = res.headers['content-disposition'] || '';
   const name = disposition.match(/filename="([^"]+)"/)?.[1] || `leads-${params.count}.xlsx`;
   const url = URL.createObjectURL(res.data);

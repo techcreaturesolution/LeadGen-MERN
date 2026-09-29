@@ -1,15 +1,26 @@
 import { Router } from 'express';
 import { z } from 'zod';
 import { Lead } from '../models/Lead.js';
-import { SearchJob } from '../models/SearchJob.js';
+import { isAdLocked, SearchJob } from '../models/SearchJob.js';
+import { dedupeLeads } from '../services/agent/qualityAgent.js';
 import { buildLeadsWorkbook } from '../services/excel.js';
 import { HttpError } from '../utils/httpError.js';
 
 const router = Router();
 
-function buildFilter(user, q) {
+const LOCKED_MSG = 'Watch the full video ad to unlock the results of this search';
+
+async function buildFilter(user, q) {
   const filter = { owner: user._id };
-  if (q.jobId) filter.job = q.jobId;
+  if (q.jobId) {
+    const job = await SearchJob.findOne({ _id: q.jobId, owner: user._id }).select('adGate').lean();
+    if (!job) throw new HttpError(404, 'Search not found');
+    if (isAdLocked(job)) throw new HttpError(403, LOCKED_MSG);
+    filter.job = job._id;
+  } else {
+    const locked = await SearchJob.find({ owner: user._id, 'adGate.required': true, 'adGate.completedAt': null }).distinct('_id');
+    if (locked.length) filter.job = { $nin: locked };
+  }
   if (q.hasEmail === 'true') filter.primaryEmail = { $exists: true, $nin: [null, ''] };
   if (q.emailType) filter.primaryEmailCategory = q.emailType;
   if (q.source) filter.sources = q.source;
@@ -23,13 +34,23 @@ function buildFilter(user, q) {
 router.get('/', async (req, res) => {
   const page = Math.max(1, Number(req.query.page) || 1);
   const limit = Math.min(100, Number(req.query.limit) || 20);
-  const filter = buildFilter(req.user, req.query);
-  const sort = req.query.jobId ? { rank: 1 } : { createdAt: -1, rank: 1 };
-  const [items, total] = await Promise.all([
-    Lead.find(filter).sort(sort).skip((page - 1) * limit).limit(limit).lean(),
-    Lead.countDocuments(filter),
+  const filter = await buildFilter(req.user, req.query);
+  if (req.query.jobId) {
+    const [items, total] = await Promise.all([
+      Lead.find(filter).sort({ rank: 1 }).skip((page - 1) * limit).limit(limit).lean(),
+      Lead.countDocuments(filter),
+    ]);
+    return res.json({ items, total, page, limit });
+  }
+  const [out] = await Lead.aggregate([
+    { $match: filter },
+    { $sort: { createdAt: -1, rank: 1 } },
+    { $group: { _id: { $ifNull: ['$dedupeKey', '$_id'] }, doc: { $first: '$$ROOT' } } },
+    { $replaceRoot: { newRoot: '$doc' } },
+    { $sort: { createdAt: -1, rank: 1 } },
+    { $facet: { items: [{ $skip: (page - 1) * limit }, { $limit: limit }], total: [{ $count: 'n' }] } },
   ]);
-  res.json({ items, total, page, limit });
+  res.json({ items: out.items, total: out.total[0]?.n || 0, page, limit });
 });
 
 router.get('/stats', async (req, res) => {
@@ -46,7 +67,7 @@ router.get('/stats', async (req, res) => {
 
 router.get('/export', async (req, res) => {
   const { count } = z.object({ count: z.enum(['20', '40', '60', 'all']).default('20') }).parse(req.query);
-  const filter = buildFilter(req.user, req.query);
+  const filter = await buildFilter(req.user, req.query);
   let title = 'All leads';
   let jobs = [];
   if (req.query.jobId) {
@@ -55,9 +76,14 @@ router.get('/export', async (req, res) => {
     title = job.query;
     jobs = [job];
   }
-  let q = Lead.find(filter).sort(req.query.jobId ? { rank: 1 } : { score: -1, createdAt: -1 });
-  if (count !== 'all') q = q.limit(Number(count));
-  const leads = await q.lean();
+  let leads = await Lead.find(filter)
+    .sort(req.query.jobId ? { rank: 1 } : { createdAt: -1, score: -1 })
+    .lean();
+  if (!req.query.jobId) {
+    leads = dedupeLeads(leads.map((l) => ({ ...l, rawEmails: [] }))).leads;
+    leads.sort((a, b) => (b.score || 0) - (a.score || 0));
+  }
+  if (count !== 'all') leads = leads.slice(0, Number(count));
   const buffer = await buildLeadsWorkbook({ title, leads, count, jobs });
   const safe = title.replace(/[^a-z0-9]+/gi, '-').replace(/^-|-$/g, '').slice(0, 50) || 'leads';
   res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');

@@ -1,10 +1,11 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import AdSlot from '../components/AdSlot.jsx';
 import GoogleAd from '../components/GoogleAd.jsx';
 import ExportButtons from '../components/ExportButtons.jsx';
 import LeadsTable from '../components/LeadsTable.jsx';
 import StatusBadge from '../components/StatusBadge.jsx';
+import VideoAdGate from '../components/VideoAdGate.jsx';
 import { api, errMsg, SOURCE_LABELS } from '../lib/api.js';
 
 const STAGES = ['planning', 'discovering', 'resolving websites', 'crawling websites', 'qualifying', 'ai summary', 'done'];
@@ -15,6 +16,8 @@ export default function SearchDetail() {
   const [leads, setLeads] = useState([]);
   const [error, setError] = useState('');
   const [showLogs, setShowLogs] = useState(false);
+  const [unlockTick, setUnlockTick] = useState(0);
+  const onUnlocked = useCallback(() => setUnlockTick((n) => n + 1), []);
 
   useEffect(() => {
     let timer;
@@ -24,12 +27,7 @@ export default function SearchDetail() {
         const { data } = await api.get(`/searches/${id}`);
         if (!alive) return;
         setJob(data.job);
-        if (data.job.status === 'completed') {
-          const r = await api.get('/leads', { params: { jobId: id, limit: 100 } });
-          if (alive) setLeads(r.data.items);
-        } else if (data.job.status !== 'failed') {
-          timer = setTimeout(tick, 2500);
-        }
+        if (!['completed', 'failed'].includes(data.job.status)) timer = setTimeout(tick, 2500);
       } catch (e) {
         if (alive) setError(errMsg(e));
       }
@@ -39,7 +37,22 @@ export default function SearchDetail() {
       alive = false;
       clearTimeout(timer);
     };
-  }, [id]);
+  }, [id, unlockTick]);
+
+  const done = job?.status === 'completed';
+  const locked = Boolean(job?.locked);
+
+  useEffect(() => {
+    if (!done || locked) return;
+    let alive = true;
+    api
+      .get('/leads', { params: { jobId: id, limit: 100 } })
+      .then((r) => alive && setLeads(r.data.items))
+      .catch((e) => alive && setError(errMsg(e)));
+    return () => {
+      alive = false;
+    };
+  }, [id, done, locked]);
 
   if (error) return <div className="rounded-lg bg-red-50 p-4 text-red-700">{error}</div>;
   if (!job) return <div className="text-slate-500">Loading…</div>;
@@ -63,12 +76,12 @@ export default function SearchDetail() {
             {job.plan?.businessType && (
               <span>
                 · plan: {job.plan.businessType}
-                {job.plan.location ? ` in ${job.plan.location}` : ''} → {job.plan.targetRole?.toUpperCase()} ({job.plan.planner})
+                {job.plan.locations?.length ? ` in ${job.plan.locations.join(' + ')}` : job.plan.location ? ` in ${job.plan.location}` : ''} → {job.plan.targetRole?.toUpperCase()} ({job.plan.planner})
               </span>
             )}
           </div>
         </div>
-        <ExportButtons params={{ jobId: id }} disabled={job.status !== 'completed' || !leads.length} />
+        <ExportButtons params={{ jobId: id }} disabled={!done || locked || !leads.length} />
       </div>
 
       {job.status !== 'completed' && (
@@ -86,7 +99,13 @@ export default function SearchDetail() {
         </div>
       )}
 
-      {job.status === 'completed' && (
+      {locked && job.status !== 'failed' && <VideoAdGate jobId={id} onUnlocked={onUnlocked} />}
+
+      {done && locked && (
+        <div className="card text-sm text-slate-600">Results are ready and unlock as soon as the video ad finishes.</div>
+      )}
+
+      {done && !locked && (
         <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
           <div className="card">
             <div className="text-sm text-slate-500">Leads</div>
@@ -107,11 +126,18 @@ export default function SearchDetail() {
         </div>
       )}
 
+      {done && !locked && job.quality?.rawResults != null && (
+        <div className="text-xs text-slate-500">
+          Data quality: {job.quality.rawResults} raw results → {job.quality.duplicatesRemoved} duplicates merged, {job.quality.rejected} off-target removed,{' '}
+          {job.quality.emailsRemoved} invalid/shared emails removed · AI verification {job.quality.aiChecked ? 'on' : 'off (rule checks only)'}
+        </div>
+      )}
+
       {job.summary && <div className="rounded-lg border border-blue-100 bg-blue-50 p-4 text-sm text-blue-900"><b>AI summary:</b> {job.summary}</div>}
 
       <AdSlot placement="dashboard_banner" />
 
-      {job.status === 'completed' && (
+      {done && !locked && (
         <div className="card p-0">
           <LeadsTable leads={leads} />
         </div>

@@ -2,6 +2,7 @@ import { env } from '../../config/env.js';
 import { http } from '../../utils/http.js';
 
 const TAG_RULES = [
+  { match: /college|universit|polytechnic/i, filters: ['["amenity"~"^(college|university)$"]', '["office"="educational_institution"]'] },
   { match: /\b(it|software|tech|technology|saas|web|app|digital|computer)\b/i, filters: ['["office"~"^(it|company|software|telecommunication)$"]', '["shop"="computer"]'] },
   { match: /restaurant|cafe|food|hotel/i, filters: ['["amenity"~"^(restaurant|cafe|fast_food)$"]', '["tourism"="hotel"]'] },
   { match: /hospital|clinic|doctor|health|pharma/i, filters: ['["amenity"~"^(hospital|clinic|doctors|pharmacy)$"]'] },
@@ -59,6 +60,7 @@ export async function searchOsm(plan, limit, log) {
             lat: e.lat ?? e.center?.lat,
             lng: e.lon ?? e.center?.lon,
             source: 'google_maps',
+            areaMatched: plan.location,
           };
         });
       rows.sort((a, b) => Number(Boolean(b.website || b.email)) - Number(Boolean(a.website || a.email)));

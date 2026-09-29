@@ -29,7 +29,7 @@ export const env = {
   openaiModel: process.env.OPENAI_MODEL || 'gpt-4o-mini',
   overpassUrls: list(
     process.env.OVERPASS_URLS ||
-      'https://overpass-api.de/api/interpreter,https://overpass.kumi.systems/api/interpreter,https://overpass.private.coffee/api/interpreter',
+      'https://overpass-api.de/api/interpreter,https://maps.mail.ru/osm/tools/overpass/api/interpreter,https://overpass.kumi.systems/api/interpreter,https://overpass.private.coffee/api/interpreter',
   ),
   enableFreeSearchFallback: bool(process.env.ENABLE_FREE_SEARCH_FALLBACK, false),
 
@@ -44,6 +44,16 @@ export const env = {
     testMode: bool(process.env.ADSENSE_TEST_MODE, false),
     demo: bool(process.env.ADSENSE_DEMO, true),
   },
+
+  videoAd: {
+    required: bool(process.env.VIDEO_AD_REQUIRED, true),
+    seconds: Math.max(5, Number(process.env.VIDEO_AD_SECONDS || 60)),
+    exemptAdmins: bool(process.env.VIDEO_AD_EXEMPT_ADMINS, true),
+    vastTag: /^https:\/\//.test(process.env.VIDEO_AD_VAST_TAG || '') ? process.env.VIDEO_AD_VAST_TAG : '',
+  },
+
+  emailMxCheck: bool(process.env.EMAIL_MX_CHECK, true),
+  leadMatchMode: process.env.LEAD_MATCH_MODE === 'balanced' ? 'balanced' : 'strict',
 
   maxConcurrentJobs: Number(process.env.MAX_CONCURRENT_JOBS || 2),
   crawlConcurrency: Number(process.env.CRAWL_CONCURRENCY || 5),

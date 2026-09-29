@@ -9,8 +9,11 @@ const COLUMNS = [
   { header: 'Phone', key: 'phone', width: 18 },
   { header: 'Website', key: 'website', width: 32 },
   { header: 'Category', key: 'category', width: 20 },
+  { header: 'Match', key: 'match', width: 14 },
+  { header: 'Match Evidence', key: 'matchReason', width: 40 },
   { header: 'Address', key: 'address', width: 40 },
   { header: 'City', key: 'city', width: 14 },
+  { header: 'Email Domain Check', key: 'emailCheck', width: 18 },
   { header: 'Rating', key: 'rating', width: 8 },
   { header: 'Reviews', key: 'reviewsCount', width: 9 },
   { header: 'LinkedIn', key: 'linkedinUrl', width: 32 },
@@ -22,6 +25,30 @@ const COLUMNS = [
 
 const SOURCE_LABEL = { google_maps: 'Google Maps', linkedin: 'LinkedIn', instagram: 'Instagram' };
 
+const clean = (v) => (typeof v === 'string' ? v.replace(/\s+/g, ' ').trim() : v);
+
+function matchLabel(l) {
+  if (!l.verification) return '';
+  return `${l.verification === 'verified' ? 'Verified' : 'Likely'}${l.aiVerified ? ' (AI)' : ''}`;
+}
+
+function emailCheck(l) {
+  const e = (l.emails || []).find((x) => x.email === l.primaryEmail);
+  if (!e) return '';
+  if (e.mxValid === true) return 'Mail server OK';
+  return e.mxValid === false ? 'Unconfirmed' : '';
+}
+
+function uniqueRows(leads) {
+  const seen = new Set();
+  return leads.filter((l) => {
+    const key = l.dedupeKey || l.domain || `${String(l.name || '').toLowerCase().replace(/[^a-z0-9]/g, '')}|${String(l.city || '').toLowerCase()}`;
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+}
+
 function styleHeader(row) {
   row.font = { bold: true, color: { argb: 'FFFFFFFF' } };
   row.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF1E40AF' } };
@@ -29,7 +56,8 @@ function styleHeader(row) {
   row.height = 20;
 }
 
-export async function buildLeadsWorkbook({ title, leads, count, jobs = [] }) {
+export async function buildLeadsWorkbook({ title, leads: input, count, jobs = [] }) {
+  const leads = uniqueRows(input);
   const wb = new ExcelJS.Workbook();
   wb.creator = 'LeadGen AI';
   wb.created = new Date();
@@ -61,23 +89,39 @@ export async function buildLeadsWorkbook({ title, leads, count, jobs = [] }) {
     const slice = leads.slice(0, b);
     summary.addRow({ metric: `Top ${b}: leads / with email`, value: `${slice.length} / ${slice.filter((l) => l.primaryEmail).length}` });
   }
+  const verifiedCount = leads.filter((l) => l.verification === 'verified').length;
+  if (leads.some((l) => l.verification)) summary.addRow({ metric: 'Verified matches', value: `${verifiedCount} / ${leads.length}` });
+  summary.addRow({ metric: 'Duplicate rows in report', value: 0 });
   if (jobs.length) {
     summary.addRow({});
-    jobs.forEach((j) => summary.addRow({ metric: `Search: ${j.query}`, value: j.summary || j.status }));
+    jobs.forEach((j) => {
+      summary.addRow({ metric: `Search: ${j.query}`, value: j.summary || j.status });
+      if (j.plan?.locations?.length) summary.addRow({ metric: 'Locations searched', value: j.plan.locations.join(', ') });
+      const q = j.quality;
+      if (q?.rawResults != null) {
+        summary.addRows([
+          { metric: 'Raw results collected', value: q.rawResults },
+          { metric: 'Duplicates merged', value: q.duplicatesRemoved },
+          { metric: 'Off-target businesses removed', value: q.rejected },
+          { metric: 'Invalid / shared emails removed', value: q.emailsRemoved },
+          { metric: 'AI verification agent', value: q.aiChecked ? 'On' : 'Off (rule-based checks only)' },
+        ]);
+      }
+    });
   }
 
   const sheet = wb.addWorksheet('Leads', { views: [{ state: 'frozen', ySplit: 1 }] });
   sheet.columns = COLUMNS;
   styleHeader(sheet.getRow(1));
   leads.forEach((l, i) => {
+    const row = Object.fromEntries(COLUMNS.map((c) => [c.key, clean(l[c.key])]));
     sheet.addRow({
-      ...l,
+      ...row,
       rank: i + 1,
       primaryEmailCategory: (l.primaryEmailCategory || '').toUpperCase(),
-      otherEmails: (l.emails || [])
-        .slice(1)
-        .map((e) => e.email)
-        .join(', '),
+      otherEmails: [...new Set((l.emails || []).map((e) => e.email))].filter((e) => e !== l.primaryEmail).join(', '),
+      match: matchLabel(l),
+      emailCheck: emailCheck(l),
       sources: (l.sources || []).map((s) => SOURCE_LABEL[s] || s).join(', '),
     });
   });

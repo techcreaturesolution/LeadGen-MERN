@@ -53,3 +53,13 @@ export async function downloadExport(params) {
 }
 
 export const SOURCE_LABELS = { google_maps: 'Google Maps', linkedin: 'LinkedIn', instagram: 'Instagram' };
+
+export async function uploadGroupExcel(groupId, file) {
+  const { data } = await api.post(`/groups/${groupId}/import`, file, {
+    params: { fileName: file.name },
+    headers: { 'Content-Type': 'application/octet-stream' },
+  });
+  return data;
+}
+
+export const fmtDate = (d) => (d ? new Date(d).toLocaleString() : '—');

@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import ExportButtons from '../components/ExportButtons.jsx';
 import LeadsTable from '../components/LeadsTable.jsx';
+import SaveToGroup from '../components/SaveToGroup.jsx';
 import { api, errMsg, SOURCE_LABELS } from '../lib/api.js';
 import GoogleAd from '../components/GoogleAd.jsx';
 
@@ -9,6 +10,20 @@ export default function Leads() {
   const [page, setPage] = useState(1);
   const [data, setData] = useState({ items: [], total: 0, limit: 25 });
   const [error, setError] = useState('');
+  const [selected, setSelected] = useState(() => new Set());
+  const toggle = (id) =>
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  const toggleAll = (rows, on) =>
+    setSelected((prev) => {
+      const next = new Set(prev);
+      rows.forEach((l) => (on ? next.add(l._id) : next.delete(l._id)));
+      return next;
+    });
 
   const params = Object.fromEntries(Object.entries(filters).filter(([, v]) => v));
   const key = JSON.stringify(params);
@@ -33,7 +48,19 @@ export default function Leads() {
     <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h1 className="text-2xl font-bold">All leads</h1>
-        <ExportButtons params={params} disabled={!data.total} />
+        <div className="flex flex-wrap items-center gap-2">
+          {selected.size > 0 ? (
+            <>
+              <SaveToGroup payload={{ leadIds: [...selected] }} label={`Save ${selected.size} selected to group`} />
+              <button type="button" className="text-xs text-slate-500" onClick={() => setSelected(new Set())}>
+                clear
+              </button>
+            </>
+          ) : (
+            <SaveToGroup payload={{ filters: params }} label="Save all filtered to group" disabled={!data.total} />
+          )}
+          <ExportButtons params={params} disabled={!data.total} />
+        </div>
       </div>
       <div className="card grid gap-3 md:grid-cols-4">
         <input className="input" placeholder="Search name, email, website, city…" value={filters.search} onChange={set('search')} />
@@ -61,7 +88,7 @@ export default function Leads() {
       {error && <div className="rounded-lg bg-red-50 p-3 text-sm text-red-700">{error}</div>}
       <GoogleAd slot="banner" />
       <div className="card p-0">
-        <LeadsTable leads={data.items} showRank={false} />
+        <LeadsTable leads={data.items} showRank={false} selected={selected} onToggle={toggle} onToggleAll={toggleAll} />
       </div>
       <div className="flex items-center justify-between text-sm text-slate-500">
         <span>{data.total} leads</span>

@@ -4,6 +4,7 @@ import AdSlot from '../components/AdSlot.jsx';
 import GoogleAd from '../components/GoogleAd.jsx';
 import ExportButtons from '../components/ExportButtons.jsx';
 import LeadsTable from '../components/LeadsTable.jsx';
+import SaveToGroup from '../components/SaveToGroup.jsx';
 import StatusBadge from '../components/StatusBadge.jsx';
 import VideoAdGate from '../components/VideoAdGate.jsx';
 import { api, errMsg, SOURCE_LABELS } from '../lib/api.js';
@@ -81,7 +82,10 @@ export default function SearchDetail() {
             )}
           </div>
         </div>
-        <ExportButtons params={{ jobId: id }} disabled={!done || locked || !leads.length} />
+        <div className="flex flex-wrap items-center gap-2">
+          <SaveToGroup payload={{ jobId: id }} defaultName={job.query.slice(0, 120)} disabled={!done || locked || !leads.length} />
+          <ExportButtons params={{ jobId: id }} disabled={!done || locked || !leads.length} />
+        </div>
       </div>
 
       {job.status !== 'completed' && (

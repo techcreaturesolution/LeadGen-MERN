@@ -5,8 +5,8 @@ import { env } from '../config/env.js';
 import { Lead } from '../models/Lead.js';
 import { Ad } from '../models/Ad.js';
 import { isAdLocked, publicAdGate, SearchJob, SOURCES, TARGET_COUNTS } from '../models/SearchJob.js';
-import { activeFilter } from './ads.js';
 import { enqueueJob } from '../services/jobQueue.js';
+import { DEMO_VIDEO_AD, pickVideoAd } from '../services/videoAds.js';
 import { mapsProvider } from '../services/sources/googleMaps.js';
 import { webSearchProvider } from '../services/sources/webSearch.js';
 import { llmEnabled } from '../services/agent/llm.js';
@@ -26,27 +26,6 @@ function serializeJob(job) {
   }
   return out;
 }
-
-async function pickVideoAd() {
-  const pool = await Ad.find({ ...activeFilter('video'), videoUrl: { $nin: [null, ''] } })
-    .select('advertiser title description videoUrl targetUrl ctaText priority')
-    .lean();
-  if (!pool.length) return null;
-  const total = pool.reduce((s, a) => s + 1 + Math.max(0, a.priority || 0), 0);
-  let r = Math.random() * total;
-  return pool.find((a) => (r -= 1 + Math.max(0, a.priority || 0)) < 0) || pool[0];
-}
-
-const DEMO_VIDEO_AD = {
-  _id: null,
-  advertiser: 'LeadGen AI',
-  title: 'Your brand here: 60 second video slot',
-  description: 'Demo video ad. Add a video ad in Admin to replace it.',
-  videoUrl: '/demo-video-ad.mp4',
-  targetUrl: null,
-  ctaText: 'Advertise with us',
-  demo: true,
-};
 
 const createLimiter = rateLimit({ windowMs: 60_000, limit: 10, standardHeaders: 'draft-7', legacyHeaders: false });
 

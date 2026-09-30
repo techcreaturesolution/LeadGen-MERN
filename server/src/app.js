@@ -11,8 +11,13 @@ import adminRoutes from './routes/admin.js';
 import adRoutes from './routes/ads.js';
 import adsenseRoutes, { adsTxt } from './routes/adsense.js';
 import authRoutes from './routes/auth.js';
+import campaignRoutes from './routes/campaigns.js';
+import gmailRoutes from './routes/gmail.js';
+import groupRoutes from './routes/groups.js';
 import leadRoutes from './routes/leads.js';
 import searchRoutes from './routes/searches.js';
+import templateRoutes from './routes/templates.js';
+import unsubscribeRoutes from './routes/unsubscribe.js';
 
 export function createApp() {
   const app = express();
@@ -29,6 +34,11 @@ export function createApp() {
   app.use('/api/searches', requireAuth, searchRoutes);
   app.use('/api/leads', requireAuth, leadRoutes);
   app.use('/api/ads', requireAuth, adRoutes);
+  app.use('/api/gmail', gmailRoutes);
+  app.use('/api/unsubscribe', express.urlencoded({ extended: false }), unsubscribeRoutes);
+  app.use('/api/groups', requireAuth, groupRoutes);
+  app.use('/api/templates', requireAuth, templateRoutes);
+  app.use('/api/campaigns', requireAuth, campaignRoutes);
   app.use('/api/admin', requireAuth, requireAdmin, adminRoutes);
   app.use('/api', notFound);
 

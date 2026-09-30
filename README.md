@@ -59,6 +59,12 @@ Without any API keys the app still works: OpenStreetMap for businesses, rule-bas
 | `OPENAI_API_KEY`, `OPENAI_MODEL` | Enables the LLM planner & AI summaries/notes |
 | `ADSENSE_CLIENT_ID`, `ADSENSE_SLOT_{BANNER,SIDEBAR,INLINE,RAIL}` | Google AdSense publisher ID and display ad unit IDs |
 | `ADSENSE_TEST_MODE`, `ADSENSE_DEMO` | `data-adtest="on"` for non-billed test ads; show demo creatives in unconfigured slots (default `true`) |
+| `GOOGLE_CLIENT_SECRET`, `GMAIL_REDIRECT_URI` | OAuth client secret + redirect URI for **Connect Gmail** (email campaigns sent from the user's own Gmail) |
+| `TOKEN_ENCRYPTION_KEY` | Key used to encrypt stored Gmail refresh tokens (AES-256-GCM). **Required** in production when Gmail sending is on |
+| `PUBLIC_API_URL` | Public URL of this API, used for unsubscribe links in emails |
+| `EMAIL_DRY_RUN` | `true` disables real sending; campaigns only run as test runs |
+| `GMAIL_DAILY_LIMIT`, `GMAIL_SEND_INTERVAL_MS`, `CAMPAIGN_MAX_RECIPIENTS` | Per-user 24 h cap (default 400), delay between emails (default 4000 ms), max recipients per campaign (default 2000) |
+| `VIDEO_AD_DURING_CAMPAIGNS` | Play video ads on the campaign page while emails are sending (default `true`, admins exempt) |
 | `MAX_CONCURRENT_JOBS`, `CRAWL_CONCURRENCY`, `CRAWL_TIMEOUT_MS`, `DAILY_SEARCH_LIMIT` | Tuning / limits |
 
 ### Google (Gmail) sign-in setup
@@ -66,6 +72,21 @@ Without any API keys the app still works: OpenStreetMap for businesses, rule-bas
 1. Google Cloud Console → **APIs & Services → Credentials → Create credentials → OAuth client ID → Web application**.
 2. Authorised JavaScript origins: `http://localhost:5173` and your production URL.
 3. Put the client ID into `GOOGLE_CLIENT_ID`. The login page loads it from `/api/auth/config`.
+
+### Email campaigns from the user's Gmail
+
+Workflow: **Lead groups** (save leads from a search, from All leads, or upload an Excel report with an `Email` column) → **Email templates** (ready-made website / software / marketing offers, merge fields `{{business}}`, `{{city}}`, `{{website}}`, `{{email}}`, `{{phone}}`, `{{category}}`, `{{my_name}}`, `{{my_email}}`, fallbacks like `{{city|your city}}`, optional AI draft) → **Campaigns** (pick group + template, preview, send). Each group has a **Mail history** tab with every campaign sent to it and, per contact, when it was last emailed and with which template.
+
+Mail is only ever sent through the Gmail API as the logged-in user, after they click **Connect Gmail** and grant the `gmail.send` permission; the connected Gmail must be the same address they log in with. There is no platform mailbox. Without Gmail set up, campaigns run as **test runs** that record exactly who would get what, without sending.
+
+Safety built in: one email per address per campaign, contacts already emailed with the same template are skipped by default, every email has an unsubscribe link + `List-Unsubscribe` header (unsubscribed contacts are never emailed again by that user), emails go out one at a time with a delay and a 24 h cap, and a campaign can be paused, resumed or cancelled. An email interrupted by a server restart is marked failed instead of being resent.
+
+Setup:
+
+1. In the same Google Cloud project as sign-in, enable the **Gmail API**.
+2. **OAuth consent screen** → add the scope `https://www.googleapis.com/auth/gmail.send`. While the app is in *Testing*, add your users as test users; for public use Google requires app verification for this scope.
+3. In the OAuth **Web** client, add the authorised redirect URI `http://localhost:5000/api/gmail/callback` (and `https://your-domain/api/gmail/callback` in production → `GMAIL_REDIRECT_URI`).
+4. Set `GOOGLE_CLIENT_SECRET`, `TOKEN_ENCRYPTION_KEY` (e.g. `openssl rand -hex 32`) and `PUBLIC_API_URL`.
 
 ### Google Maps / search keys
 
@@ -105,6 +126,12 @@ Until then, every slot shows a labelled demo ad creative. Set `ADSENSE_DEMO=fals
 | `GET /api/leads/export?jobId=&count=20\|40\|60\|all` | Excel download |
 | `GET /api/ads?placement=` · `POST /api/ads/:id/click` | Dashboard ads |
 | `GET /api/adsense/config` · `GET /ads.txt` | AdSense publisher/slot config (public), ads.txt |
+| `GET /api/ads/video/next` · `POST /api/ads/:id/video-complete` | Video ads shown while a campaign sends |
+| `GET /api/gmail/status` · `POST /api/gmail/connect` · `GET /api/gmail/callback` · `POST /api/gmail/disconnect` | Gmail send authorization |
+| `/api/groups` · `POST /api/groups/:id/members {jobId\|leadIds\|filters}` · `POST /api/groups/:id/import` (xlsx body) · `GET /api/groups/:id/history` | Lead groups |
+| `/api/templates` · `GET /api/templates/meta` · `POST /api/templates/preview` · `POST /api/templates/draft` | Email templates |
+| `/api/campaigns` `{ groupId, templateId, mode: gmail\|dry_run }` · `POST /api/campaigns/:id/{pause,resume,cancel}` · `POST /api/campaigns/test` | Campaigns |
+| `GET\|POST /api/unsubscribe/:token` | Public unsubscribe link |
 | `/api/admin/{stats,ads,users}` | Admin (ads CRUD, user roles) |
 
 ## Scripts

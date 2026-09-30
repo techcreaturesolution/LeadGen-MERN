@@ -2,11 +2,16 @@ import { Navigate, Route, Routes } from 'react-router-dom';
 import Layout from './components/Layout.jsx';
 import { useAuth } from './lib/auth.jsx';
 import Admin from './pages/Admin.jsx';
+import CampaignDetail from './pages/CampaignDetail.jsx';
+import Campaigns from './pages/Campaigns.jsx';
 import Dashboard from './pages/Dashboard.jsx';
+import GroupDetail from './pages/GroupDetail.jsx';
+import Groups from './pages/Groups.jsx';
 import Leads from './pages/Leads.jsx';
 import Login from './pages/Login.jsx';
 import SearchDetail from './pages/SearchDetail.jsx';
 import Searches from './pages/Searches.jsx';
+import Templates from './pages/Templates.jsx';
 
 function Protected({ children, admin = false }) {
   const { user, loading } = useAuth();
@@ -31,6 +36,11 @@ export default function App() {
         <Route path="searches" element={<Searches />} />
         <Route path="searches/:id" element={<SearchDetail />} />
         <Route path="leads" element={<Leads />} />
+        <Route path="groups" element={<Groups />} />
+        <Route path="groups/:id" element={<GroupDetail />} />
+        <Route path="templates" element={<Templates />} />
+        <Route path="campaigns" element={<Campaigns />} />
+        <Route path="campaigns/:id" element={<CampaignDetail />} />
         <Route
           path="admin"
           element={

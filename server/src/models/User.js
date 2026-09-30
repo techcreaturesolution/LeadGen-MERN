@@ -9,6 +9,13 @@ const userSchema = new mongoose.Schema(
     role: { type: String, enum: ['user', 'admin'], default: 'user' },
     active: { type: Boolean, default: true },
     lastLoginAt: Date,
+    gmail: {
+      email: { type: String, lowercase: true, trim: true },
+      refreshToken: { type: String, select: false },
+      scope: String,
+      connectedAt: Date,
+      lastError: String,
+    },
   },
   { timestamps: true },
 );
@@ -20,6 +27,7 @@ userSchema.methods.toPublic = function toPublic() {
     name: this.name,
     picture: this.picture,
     role: this.role,
+    gmail: this.gmail?.email ? { email: this.gmail.email, connectedAt: this.gmail.connectedAt } : null,
     createdAt: this.createdAt,
   };
 };

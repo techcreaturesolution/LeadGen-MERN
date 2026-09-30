@@ -10,7 +10,7 @@ const router = Router();
 
 const LOCKED_MSG = 'Watch the full video ad to unlock the results of this search';
 
-async function buildFilter(user, q) {
+export async function buildFilter(user, q) {
   const filter = { owner: user._id };
   if (q.jobId) {
     const job = await SearchJob.findOne({ _id: q.jobId, owner: user._id }).select('adGate').lean();

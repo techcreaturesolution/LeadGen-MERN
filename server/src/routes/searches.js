@@ -4,7 +4,7 @@ import { z } from 'zod';
 import { env } from '../config/env.js';
 import { Lead } from '../models/Lead.js';
 import { Ad } from '../models/Ad.js';
-import { isAdLocked, publicAdGate, SearchJob, SOURCES, TARGET_COUNTS } from '../models/SearchJob.js';
+import { expiresAt, isAdLocked, publicAdGate, SearchJob, SOURCES, TARGET_COUNTS } from '../models/SearchJob.js';
 import { enqueueJob } from '../services/jobQueue.js';
 import { DEMO_VIDEO_AD, pickVideoAd } from '../services/videoAds.js';
 import { mapsProvider } from '../services/sources/googleMaps.js';
@@ -17,9 +17,12 @@ const router = Router();
 
 const BEAT_CREDIT_MS = 3000;
 
-function serializeJob(job) {
+export function serializeJob(job) {
   const out = job.toObject ? job.toObject() : { ...job };
   out.adGate = publicAdGate(job);
+  out.expiresAt = expiresAt(job, env.dataRetentionDays);
+  delete out.cacheKey;
+  if (out.cache) delete out.cache.sourceJobs;
   if (isAdLocked(job)) {
     delete out.summary;
     out.locked = true;
@@ -42,6 +45,8 @@ router.get('/capabilities', (_req, res) => {
     ai: llmEnabled() ? 'openai' : 'rules',
     targetCounts: TARGET_COUNTS,
     sources: SOURCES,
+    retentionDays: env.dataRetentionDays,
+    sharedResults: env.sharedLeadCache,
   });
 });
 

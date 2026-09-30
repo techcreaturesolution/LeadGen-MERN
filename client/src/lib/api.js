@@ -25,10 +25,10 @@ export function errMsg(err) {
   return err?.response?.data?.error || err?.message || 'Something went wrong';
 }
 
-export async function downloadExport(params) {
+export async function downloadExport(params, path = '/leads/export') {
   let res;
   try {
-    res = await api.get('/leads/export', { params, responseType: 'blob' });
+    res = await api.get(path, { params, responseType: 'blob' });
   } catch (err) {
     const body = err.response?.data;
     if (body instanceof Blob) {
@@ -41,7 +41,7 @@ export async function downloadExport(params) {
     throw err;
   }
   const disposition = res.headers['content-disposition'] || '';
-  const name = disposition.match(/filename="([^"]+)"/)?.[1] || `leads-${params.count}.xlsx`;
+  const name = disposition.match(/filename="([^"]+)"/)?.[1] || `leads-${params.count || 'all'}.${params.format || 'xlsx'}`;
   const url = URL.createObjectURL(res.data);
   const a = document.createElement('a');
   a.href = url;
@@ -61,5 +61,7 @@ export async function uploadGroupExcel(groupId, file) {
   });
   return data;
 }
+
+export const daysLeft = (d) => Math.max(0, Math.ceil((new Date(d).getTime() - Date.now()) / 86400000));
 
 export const fmtDate = (d) => (d ? new Date(d).toLocaleString() : '—');

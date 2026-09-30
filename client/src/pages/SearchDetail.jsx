@@ -7,7 +7,7 @@ import LeadsTable from '../components/LeadsTable.jsx';
 import SaveToGroup from '../components/SaveToGroup.jsx';
 import StatusBadge from '../components/StatusBadge.jsx';
 import VideoAdGate from '../components/VideoAdGate.jsx';
-import { api, errMsg, SOURCE_LABELS } from '../lib/api.js';
+import { api, daysLeft, errMsg, SOURCE_LABELS } from '../lib/api.js';
 
 const STAGES = ['planning', 'discovering', 'resolving websites', 'crawling websites', 'qualifying', 'ai summary', 'done'];
 
@@ -130,7 +130,20 @@ export default function SearchDetail() {
         </div>
       )}
 
-      {done && !locked && job.quality?.rawResults != null && (
+      {done && !locked && job.cache?.reused > 0 && (
+        <div className="rounded-lg border border-emerald-100 bg-emerald-50 p-3 text-sm text-emerald-900">
+          <b>Shared results:</b> {job.cache.reused} of {job.leadCount} leads came from matching searches in the last few days
+          {job.cache.fresh ? `, ${job.cache.fresh} were found fresh` : ''}.
+        </div>
+      )}
+
+      {job.expiresAt && (
+        <div className="text-xs text-slate-500">
+          This search and its leads are deleted automatically in {daysLeft(job.expiresAt)} day(s) ({new Date(job.expiresAt).toLocaleDateString()}). Export or save them to a group to keep them.
+        </div>
+      )}
+
+      {done && !locked && job.quality?.rawResults != null && job.quality.rawResults > 0 && (
         <div className="text-xs text-slate-500">
           Data quality: {job.quality.rawResults} raw results → {job.quality.duplicatesRemoved} duplicates merged, {job.quality.rejected} off-target removed,{' '}
           {job.quality.emailsRemoved} invalid/shared emails removed · AI verification {job.quality.aiChecked ? 'on' : 'off (rule checks only)'}

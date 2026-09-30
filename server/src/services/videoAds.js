@@ -4,7 +4,7 @@ import { activeFilter } from '../routes/ads.js';
 export const DEMO_VIDEO_AD = {
   _id: null,
   advertiser: 'LeadGen AI',
-  title: 'Your brand here: 60 second video slot',
+  title: 'Your brand here: 30 second video slot',
   description: 'Demo video ad. Add a video ad in Admin to replace it.',
   videoUrl: '/demo-video-ad.mp4',
   targetUrl: null,

@@ -47,6 +47,12 @@ const searchJobSchema = new mongoose.Schema(
       startedAt: Date,
       completedAt: Date,
     },
+    cacheKey: { type: String, index: true },
+    cache: {
+      reused: { type: Number, default: 0 },
+      fresh: { type: Number, default: 0 },
+      sourceJobs: [{ type: mongoose.Schema.Types.ObjectId, ref: 'SearchJob' }],
+    },
     leadCount: { type: Number, default: 0 },
     summary: String,
     error: String,
@@ -67,5 +73,7 @@ export function publicAdGate(job) {
     completed: !isAdLocked(job),
   };
 }
+
+export const expiresAt = (job, days) => new Date(new Date(job.createdAt).getTime() + days * 24 * 3600 * 1000);
 
 export const SearchJob = mongoose.model('SearchJob', searchJobSchema);

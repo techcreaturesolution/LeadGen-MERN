@@ -48,7 +48,7 @@ export const env = {
 
   videoAd: {
     required: bool(process.env.VIDEO_AD_REQUIRED, true),
-    seconds: Math.max(5, Number(process.env.VIDEO_AD_SECONDS || 60)),
+    seconds: Math.max(5, Number(process.env.VIDEO_AD_SECONDS || 30)),
     exemptAdmins: bool(process.env.VIDEO_AD_EXEMPT_ADMINS, true),
     duringCampaigns: bool(process.env.VIDEO_AD_DURING_CAMPAIGNS, true),
     vastTag: /^https:\/\//.test(process.env.VIDEO_AD_VAST_TAG || '') ? process.env.VIDEO_AD_VAST_TAG : '',
@@ -56,6 +56,8 @@ export const env = {
 
   emailMxCheck: bool(process.env.EMAIL_MX_CHECK, true),
   leadMatchMode: process.env.LEAD_MATCH_MODE === 'balanced' ? 'balanced' : 'strict',
+  dataRetentionDays: Math.max(1, Number(process.env.DATA_RETENTION_DAYS || 7)),
+  sharedLeadCache: bool(process.env.SHARED_LEAD_CACHE, true),
 
   mail: {
     redirectUri: process.env.GMAIL_REDIRECT_URI || `http://localhost:${process.env.PORT || 5000}/api/gmail/callback`,

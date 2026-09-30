@@ -1,6 +1,6 @@
 import ExcelJS from 'exceljs';
 
-const COLUMNS = [
+export const COLUMNS = [
   { header: '#', key: 'rank', width: 5 },
   { header: 'Company / Business', key: 'name', width: 34 },
   { header: 'Primary Email', key: 'primaryEmail', width: 32 },
@@ -39,7 +39,7 @@ function emailCheck(l) {
   return e.mxValid === false ? 'Unconfirmed' : '';
 }
 
-function uniqueRows(leads) {
+export function uniqueRows(leads) {
   const seen = new Set();
   return leads.filter((l) => {
     const key = l.dedupeKey || l.domain || `${String(l.name || '').toLowerCase().replace(/[^a-z0-9]/g, '')}|${String(l.city || '').toLowerCase()}`;
@@ -47,6 +47,18 @@ function uniqueRows(leads) {
     seen.add(key);
     return true;
   });
+}
+
+export function leadRows(leads) {
+  return leads.map((l, i) => ({
+    ...Object.fromEntries(COLUMNS.map((c) => [c.key, clean(l[c.key])])),
+    rank: i + 1,
+    primaryEmailCategory: (l.primaryEmailCategory || '').toUpperCase(),
+    otherEmails: [...new Set((l.emails || []).map((e) => e.email))].filter((e) => e !== l.primaryEmail).join(', '),
+    match: matchLabel(l),
+    emailCheck: emailCheck(l),
+    sources: (l.sources || []).map((s) => SOURCE_LABEL[s] || s).join(', '),
+  }));
 }
 
 function styleHeader(row) {
@@ -113,18 +125,7 @@ export async function buildLeadsWorkbook({ title, leads: input, count, jobs = []
   const sheet = wb.addWorksheet('Leads', { views: [{ state: 'frozen', ySplit: 1 }] });
   sheet.columns = COLUMNS;
   styleHeader(sheet.getRow(1));
-  leads.forEach((l, i) => {
-    const row = Object.fromEntries(COLUMNS.map((c) => [c.key, clean(l[c.key])]));
-    sheet.addRow({
-      ...row,
-      rank: i + 1,
-      primaryEmailCategory: (l.primaryEmailCategory || '').toUpperCase(),
-      otherEmails: [...new Set((l.emails || []).map((e) => e.email))].filter((e) => e !== l.primaryEmail).join(', '),
-      match: matchLabel(l),
-      emailCheck: emailCheck(l),
-      sources: (l.sources || []).map((s) => SOURCE_LABEL[s] || s).join(', '),
-    });
-  });
+  sheet.addRows(leadRows(leads));
   sheet.autoFilter = { from: 'A1', to: { row: 1, column: COLUMNS.length } };
   for (const key of ['website', 'linkedinUrl', 'instagramUrl']) {
     const col = sheet.getColumn(key);

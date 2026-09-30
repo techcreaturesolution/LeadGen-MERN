@@ -7,12 +7,15 @@ Type a request like _"HR email of IT companies in Ahmedabad"_, pick 20 / 40 / 60
 2. **Discovers** businesses on Google Maps (Places API → SerpAPI → OpenStreetMap fallback) and company pages on LinkedIn / Instagram (SerpAPI or Google Programmable Search).
 3. **Resolves** each business's official website and **crawls** home / contact / careers / about pages for emails (incl. Cloudflare-obfuscated), phones and social links.
 4. **Qualifies** leads: classifies emails (`hr`, `sales`, `support`, `generic`, `personal`), ranks the one matching your target role first and scores each lead.
-5. **Exports** Excel reports (Top 20 / 40 / 60 / All) with a `Summary` sheet (counts, email-type and source breakdown, Top 20/40/60 metrics) and a `Leads` sheet.
+5. **Exports** Excel or CSV reports (Top 20 / 40 / 60 / All). Excel has a `Summary` sheet (counts, email-type and source breakdown, Top 20/40/60 metrics) and a `Leads` sheet.
 
 Other features:
 
 - **Sign in with Google (Gmail)** — Google ID token verified on the server, app JWT session. Optional domain restriction, admin list by email.
 - **Sponsored ads in the dashboard** — admins create ads for other companies (banner, sidebar, inline placements, priority, schedule); impressions & clicks are tracked with CTR in the admin panel.
+- **Shared results** — every search is stored on the server. When any user runs the same kind of search (same business type, locations and sources, e.g. _"HR email of IT companies in Ahmedabad"_ and _"sales emails of IT company in ahmedabad"_), verified leads found in the last `DATA_RETENTION_DAYS` are reused instantly, and a fresh search only runs to fill the gap. Fresh results replace older copies of the same business.
+- **7-day retention** — searches and their leads are deleted for every user, Admin included, `DATA_RETENTION_DAYS` (default 7) after they were run. A cleanup runs at startup and every hour. Lead groups, templates and campaign history are kept.
+- **Master Admin** — Clients tab (every account with searches, leads, groups, campaigns, emails sent, Gmail connection and last login; enable/disable, change role, delete a client and all their data), client detail page, all leads and all searches across clients, Excel/CSV export of the client list and of any client's leads.
 - Search history with live progress & agent log, all-leads view with filters, per-user daily search limit, job queue.
 
 ## Stack
@@ -64,6 +67,8 @@ Without any API keys the app still works: OpenStreetMap for businesses, rule-bas
 | `PUBLIC_API_URL` | Public URL of this API, used for unsubscribe links in emails |
 | `EMAIL_DRY_RUN` | `true` disables real sending; campaigns only run as test runs |
 | `GMAIL_DAILY_LIMIT`, `GMAIL_SEND_INTERVAL_MS`, `CAMPAIGN_MAX_RECIPIENTS` | Per-user 24 h cap (default 400), delay between emails (default 4000 ms), max recipients per campaign (default 2000) |
+| `VIDEO_AD_SECONDS` | Length of the mandatory video ad before search results (default `30`) |
+| `DATA_RETENTION_DAYS`, `SHARED_LEAD_CACHE` | Days searches/leads are kept before deletion (default `7`); reuse matching leads across users (default `true`) |
 | `VIDEO_AD_DURING_CAMPAIGNS` | Play video ads on the campaign page while emails are sending (default `true`, admins exempt) |
 | `MAX_CONCURRENT_JOBS`, `CRAWL_CONCURRENCY`, `CRAWL_TIMEOUT_MS`, `DAILY_SEARCH_LIMIT` | Tuning / limits |
 
@@ -123,7 +128,7 @@ Until then, every slot shows a labelled demo ad creative. Set `ADSENSE_DEMO=fals
 | `POST /api/searches` `{ query, sources[], targetCount: 20\|40\|60 }` | Start a lead search job |
 | `GET /api/searches` · `GET /api/searches/:id` · `DELETE /api/searches/:id` | Jobs, progress & logs |
 | `GET /api/leads?jobId&emailType&source&hasEmail&search` · `GET /api/leads/stats` | Leads |
-| `GET /api/leads/export?jobId=&count=20\|40\|60\|all` | Excel download |
+| `GET /api/leads/export?jobId=&count=20\|40\|60\|all&format=xlsx\|csv` | Excel or CSV download |
 | `GET /api/ads?placement=` · `POST /api/ads/:id/click` | Dashboard ads |
 | `GET /api/adsense/config` · `GET /ads.txt` | AdSense publisher/slot config (public), ads.txt |
 | `GET /api/ads/video/next` · `POST /api/ads/:id/video-complete` | Video ads shown while a campaign sends |
@@ -132,7 +137,10 @@ Until then, every slot shows a labelled demo ad creative. Set `ADSENSE_DEMO=fals
 | `/api/templates` · `GET /api/templates/meta` · `POST /api/templates/preview` · `POST /api/templates/draft` | Email templates |
 | `/api/campaigns` `{ groupId, templateId, mode: gmail\|dry_run }` · `POST /api/campaigns/:id/{pause,resume,cancel}` · `POST /api/campaigns/test` | Campaigns |
 | `GET\|POST /api/unsubscribe/:token` | Public unsubscribe link |
-| `/api/admin/{stats,ads,users}` | Admin (ads CRUD, user roles) |
+| `/api/admin/{stats,ads}` | Admin stats, ads CRUD |
+| `GET /api/admin/users?search&role&status` · `GET /api/admin/users/export?format` · `GET\|PATCH\|DELETE /api/admin/users/:id` | Clients: list with usage, export, full detail, role/status, delete with all data |
+| `GET /api/admin/leads?owner&jobId&search&emailType&source&hasEmail` · `GET /api/admin/leads/export?…&count&format` · `DELETE /api/admin/leads/:id` | Leads across all clients |
+| `GET /api/admin/searches?owner&search&status` · `DELETE /api/admin/searches/:id` | Searches across all clients |
 
 ## Scripts
 

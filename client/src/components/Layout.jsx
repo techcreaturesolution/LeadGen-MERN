@@ -42,7 +42,7 @@ export default function Layout() {
           </NavLink>
           {user?.role === 'admin' && (
             <NavLink to="/admin" className={linkCls}>
-              Admin · Ads &amp; users
+              Master Admin
             </NavLink>
           )}
         </nav>

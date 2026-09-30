@@ -5,6 +5,10 @@ import { Lead } from '../models/Lead.js';
 import { SearchJob } from '../models/SearchJob.js';
 import { User } from '../models/User.js';
 import { HttpError } from '../utils/httpError.js';
+import { env } from '../config/env.js';
+import { Campaign } from '../models/Campaign.js';
+import { LeadGroup } from '../models/LeadGroup.js';
+import dataRoutes from './adminData.js';
 
 const router = Router();
 
@@ -34,14 +38,32 @@ const adSchema = z
 const clean = (d) => ({ ...d, startDate: d.startDate || null, endDate: d.endDate || null });
 
 router.get('/stats', async (_req, res) => {
-  const [users, searches, leads, ads, adAgg] = await Promise.all([
+  const [users, searches, leads, ads, adAgg, groups, campaigns, mailAgg, sharedSearches] = await Promise.all([
     User.countDocuments(),
     SearchJob.countDocuments(),
     Lead.countDocuments(),
     Ad.countDocuments({ active: true }),
     Ad.aggregate([{ $group: { _id: null, impressions: { $sum: '$impressions' }, clicks: { $sum: '$clicks' }, videoViews: { $sum: '$completedViews' } } }]),
+    LeadGroup.countDocuments(),
+    Campaign.countDocuments(),
+    Campaign.aggregate([{ $match: { mode: 'gmail' } }, { $group: { _id: null, sent: { $sum: '$counts.sent' } } }]),
+    SearchJob.countDocuments({ 'cache.reused': { $gt: 0 } }),
   ]);
-  res.json({ users, searches, leads, activeAds: ads, impressions: adAgg[0]?.impressions || 0, clicks: adAgg[0]?.clicks || 0, videoViews: adAgg[0]?.videoViews || 0 });
+  res.json({
+    users,
+    searches,
+    leads,
+    groups,
+    campaigns,
+    emailsSent: mailAgg[0]?.sent || 0,
+    sharedSearches,
+    retentionDays: env.dataRetentionDays,
+    videoAdSeconds: env.videoAd.seconds,
+    activeAds: ads,
+    impressions: adAgg[0]?.impressions || 0,
+    clicks: adAgg[0]?.clicks || 0,
+    videoViews: adAgg[0]?.videoViews || 0,
+  });
 });
 
 router.get('/ads', async (_req, res) => {
@@ -65,15 +87,6 @@ router.delete('/ads/:id', async (req, res) => {
   res.json({ ok: true });
 });
 
-router.get('/users', async (_req, res) => {
-  const users = await User.find().sort({ createdAt: -1 }).limit(500).lean();
-  const counts = await SearchJob.aggregate([{ $group: { _id: '$owner', searches: { $sum: 1 }, leads: { $sum: '$leadCount' } } }]);
-  const byId = new Map(counts.map((c) => [String(c._id), c]));
-  res.json({
-    items: users.map((u) => ({ ...u, searches: byId.get(String(u._id))?.searches || 0, leads: byId.get(String(u._id))?.leads || 0 })),
-  });
-});
-
 router.patch('/users/:id', async (req, res) => {
   const body = z.object({ role: z.enum(['user', 'admin']).optional(), active: z.boolean().optional() }).parse(req.body);
   if (String(req.params.id) === String(req.user._id) && (body.role === 'user' || body.active === false)) {
@@ -83,5 +96,7 @@ router.patch('/users/:id', async (req, res) => {
   if (!user) throw new HttpError(404, 'User not found');
   res.json({ user: user.toPublic() });
 });
+
+router.use(dataRoutes);
 
 export default router;

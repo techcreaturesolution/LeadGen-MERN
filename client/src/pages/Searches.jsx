@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import GoogleAd from '../components/GoogleAd.jsx';
 import StatusBadge from '../components/StatusBadge.jsx';
-import { api, errMsg, SOURCE_LABELS } from '../lib/api.js';
+import { api, daysLeft, errMsg, SOURCE_LABELS } from '../lib/api.js';
 
 export default function Searches() {
   const [data, setData] = useState({ items: [], total: 0, page: 1, limit: 20 });
@@ -49,6 +49,7 @@ export default function Searches() {
               <th className="th">Leads</th>
               <th className="th">Status</th>
               <th className="th">Created</th>
+              <th className="th">Expires</th>
               <th className="th" />
             </tr>
           </thead>
@@ -69,6 +70,9 @@ export default function Searches() {
                   <StatusBadge status={j.status} />
                 </td>
                 <td className="td whitespace-nowrap text-xs text-slate-500">{new Date(j.createdAt).toLocaleString()}</td>
+                <td className="td whitespace-nowrap text-xs text-slate-500" title={j.expiresAt && new Date(j.expiresAt).toLocaleString()}>
+                  {j.expiresAt ? `in ${daysLeft(j.expiresAt)} d` : '—'}
+                </td>
                 <td className="td text-right">
                   {j.status !== 'running' && (
                     <button type="button" onClick={() => remove(j._id)} className="text-xs text-red-600 hover:underline">
@@ -80,7 +84,7 @@ export default function Searches() {
             ))}
             {!data.items.length && (
               <tr>
-                <td className="td py-8 text-center text-slate-500" colSpan={7}>
+                <td className="td py-8 text-center text-slate-500" colSpan={8}>
                   No searches yet.
                 </td>
               </tr>

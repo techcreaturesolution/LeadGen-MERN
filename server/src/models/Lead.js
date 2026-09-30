@@ -42,6 +42,8 @@ const leadSchema = new mongoose.Schema(
     aiVerified: Boolean,
     siteTitle: String,
     dedupeKey: { type: String, index: true },
+    discoveredAt: { type: Date, index: true },
+    reusedFrom: { type: mongoose.Schema.Types.ObjectId, ref: 'SearchJob' },
   },
   { timestamps: true },
 );

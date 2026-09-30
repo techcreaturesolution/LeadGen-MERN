@@ -2,6 +2,7 @@ import { Navigate, Route, Routes } from 'react-router-dom';
 import Layout from './components/Layout.jsx';
 import { useAuth } from './lib/auth.jsx';
 import Admin from './pages/Admin.jsx';
+import AdminClient from './pages/AdminClient.jsx';
 import CampaignDetail from './pages/CampaignDetail.jsx';
 import Campaigns from './pages/Campaigns.jsx';
 import Dashboard from './pages/Dashboard.jsx';
@@ -46,6 +47,14 @@ export default function App() {
           element={
             <Protected admin>
               <Admin />
+            </Protected>
+          }
+        />
+        <Route
+          path="admin/clients/:id"
+          element={
+            <Protected admin>
+              <AdminClient />
             </Protected>
           }
         />

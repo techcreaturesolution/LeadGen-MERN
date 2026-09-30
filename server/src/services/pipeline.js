@@ -10,6 +10,7 @@ import { llmEnabled } from './agent/llm.js';
 import { searchGoogleMaps } from './sources/googleMaps.js';
 import { findOfficialWebsite, searchInstagram, searchLinkedIn } from './sources/social.js';
 import { webSearchProvider } from './sources/webSearch.js';
+import { findCachedLeads, mergeWithCached, searchCacheKey } from './leadCache.js';
 
 function websiteMatchesName(name, result) {
   const tokens = String(name)
@@ -38,6 +39,12 @@ function toRecord(c) {
 
 const RANK = { verified: 0, likely: 1 };
 
+export const bestFirst = (plan) => (a, b) =>
+  (RANK[a.verification] ?? 2) - (RANK[b.verification] ?? 2) ||
+  Number(b.primaryEmailCategory === plan.targetRole) - Number(a.primaryEmailCategory === plan.targetRole) ||
+  Number(Boolean(b.primaryEmail)) - Number(Boolean(a.primaryEmail)) ||
+  (b.score || 0) - (a.score || 0);
+
 export async function runSearchJob(jobId) {
   const job = await SearchJob.findById(jobId);
   if (!job) return;
@@ -55,13 +62,57 @@ export async function runSearchJob(jobId) {
     await SearchJob.updateOne({ _id: jobId }, { $set: { progress, ...extra }, ...(pending.length ? { $push: { logs: { $each: pending } } } : {}) });
   };
 
+  const finalize = async (input, plan, quality) => {
+    const target = job.targetCount;
+    const seen = new Set();
+    const leads = input
+      .filter((l) => !seen.has(l.dedupeKey) && seen.add(l.dedupeKey))
+      .sort(bestFirst(plan))
+      .slice(0, target);
+    const reusedLeads = leads.filter((l) => l.reusedFrom);
+    if (leads.length < target) log('warn', `Only ${leads.length} of ${target} requested leads passed verification (${quality.likely || 0} likely matches held back in ${env.leadMatchMode} mode)`);
+    progress.withEmail = leads.filter((l) => l.primaryEmail).length;
+    progress.withRoleEmail = leads.filter((l) => l.primaryEmailCategory === plan.targetRole).length;
+
+    progress.stage = 'ai summary';
+    await flush(true);
+    const { summary, notes } = await summarizeJob(job.query, plan, leads);
+
+    const now = new Date();
+    await Lead.deleteMany({ job: jobId });
+    await Lead.insertMany(
+      leads.map((l, i) => ({
+        ...l,
+        owner: job.owner,
+        job: jobId,
+        rank: i + 1,
+        discoveredAt: l.discoveredAt || now,
+        aiNote: notes[String(i)] || l.aiNote || undefined,
+        description: undefined,
+      })),
+    );
+    progress.stage = 'done';
+    log('info', `Saved ${leads.length} leads (${progress.withEmail} with email, ${progress.withRoleEmail} ${plan.targetRole}; ${reusedLeads.length} reused from recent searches)`);
+    const cache = { reused: reusedLeads.length, fresh: leads.length - reusedLeads.length, sourceJobs: [...new Set(reusedLeads.map((l) => String(l.reusedFrom)))] };
+    await flush(true, { status: 'completed', leadCount: leads.length, summary, quality, cache, finishedAt: new Date() });
+  };
+
   try {
     await flush(true, { status: 'running', startedAt: new Date() });
     const plan = await planSearch(job.query);
     log('info', `Agent plan (${plan.planner}): ${plan.businessType} | ${plan.location || 'any location'} | role=${plan.targetRole}`);
-    await flush(true, { plan });
+    const cacheKey = searchCacheKey(plan);
+    await flush(true, { plan, cacheKey });
 
     const target = job.targetCount;
+    const cached = env.sharedLeadCache ? await findCachedLeads({ key: cacheKey, plan, sources: job.sources, excludeJob: job._id }) : { leads: [] };
+    if (cached.leads.length >= target) {
+      log('info', `Shared results: ${cached.leads.length} matching leads already found by searches in the last ${env.dataRetentionDays} days, reusing them`);
+      progress.discovered = cached.leads.length;
+      const quality = { rawResults: 0, duplicatesRemoved: 0, rejected: 0, likely: cached.leads.filter((l) => l.verification === 'likely').length, verified: cached.leads.filter((l) => l.verification === 'verified').length, emailsRemoved: 0, aiChecked: llmEnabled() };
+      return await finalize(cached.leads, plan, quality);
+    }
+    if (cached.leads.length) log('info', `Shared results: ${cached.leads.length} leads from recent searches, searching for more`);
     const sourceStats = {};
     const candidates = [];
     progress.stage = 'discovering';
@@ -186,42 +237,10 @@ export async function runSearchJob(jobId) {
       delete l.searchLocation;
       delete l.siteDescription;
     }
-    const verified = leads.filter((l) => l.verification === 'verified');
-    const likely = leads.filter((l) => l.verification === 'likely');
-    quality.verified = verified.length;
-    quality.likely = likely.length;
-    const byQuality = (a, b) =>
-      Number(b.primaryEmailCategory === plan.targetRole) - Number(a.primaryEmailCategory === plan.targetRole) ||
-      Number(Boolean(b.primaryEmail)) - Number(Boolean(a.primaryEmail)) ||
-      b.score - a.score;
-    verified.sort(byQuality);
-    likely.sort(byQuality);
-    leads = env.leadMatchMode === 'balanced' ? [...verified, ...likely] : verified;
-    const seenKeys = new Set();
-    leads = leads.filter((l) => !seenKeys.has(l.dedupeKey) && seenKeys.add(l.dedupeKey));
-    leads = leads.slice(0, target);
-    if (leads.length < target) log('warn', `Only ${leads.length} of ${target} requested leads passed verification (${quality.likely} likely matches held back in ${env.leadMatchMode} mode)`);
-    progress.withEmail = leads.filter((l) => l.primaryEmail).length;
-    progress.withRoleEmail = leads.filter((l) => l.primaryEmailCategory === plan.targetRole).length;
-
-    progress.stage = 'ai summary';
-    await flush(true);
-    const { summary, notes } = await summarizeJob(job.query, plan, leads);
-
-    await Lead.deleteMany({ job: jobId });
-    await Lead.insertMany(
-      leads.map((l, i) => ({
-        ...l,
-        owner: job.owner,
-        job: jobId,
-        rank: i + 1,
-        aiNote: notes[String(i)] || undefined,
-        description: undefined,
-      })),
-    );
-    progress.stage = 'done';
-    log('info', `Saved ${leads.length} leads (${progress.withEmail} with email, ${progress.withRoleEmail} ${plan.targetRole})`);
-    await flush(true, { status: 'completed', leadCount: leads.length, summary, quality, finishedAt: new Date() });
+    quality.verified = leads.filter((l) => l.verification === 'verified').length;
+    quality.likely = leads.filter((l) => l.verification === 'likely').length;
+    if (env.leadMatchMode !== 'balanced') leads = leads.filter((l) => l.verification === 'verified');
+    await finalize(mergeWithCached(leads, cached.leads), plan, quality);
   } catch (err) {
     log('error', err.message);
     progress.stage = 'failed';

@@ -1,4 +1,8 @@
 import { useEffect, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
+import AdminLeadsTable from '../components/admin/AdminLeadsTable.jsx';
+import ClientsTab from '../components/admin/ClientsTab.jsx';
+import SearchesTab from '../components/admin/SearchesTab.jsx';
 import { api, errMsg } from '../lib/api.js';
 import { getAdsenseConfig } from '../lib/adsense.js';
 
@@ -70,7 +74,7 @@ function AdForm({ initial, onSaved, onCancel }) {
       </label>
       {form.placement === 'video' && (
         <label className="text-sm md:col-span-2">
-          Video URL (MP4/WebM, ideally 60s; it loops until the required watch time is reached)
+          Video URL (MP4/WebM, ideally 30s; it loops until the required watch time is reached)
           <input className="input mt-1" type="url" placeholder="https://cdn.example.com/ad.mp4" value={form.videoUrl || ''} onChange={set('videoUrl')} required />
         </label>
       )}
@@ -148,18 +152,20 @@ function AdsenseStatus() {
   );
 }
 
+const TABS = { clients: 'Clients', leads: 'All leads', searches: 'Searches', ads: 'Advertisements' };
+
 export default function Admin() {
-  const [tab, setTab] = useState('ads');
+  const [params, setParams] = useSearchParams();
+  const tab = TABS[params.get('tab')] ? params.get('tab') : 'clients';
+  const setTab = (t) => setParams({ tab: t }, { replace: true });
   const [stats, setStats] = useState(null);
   const [ads, setAds] = useState([]);
-  const [users, setUsers] = useState([]);
   const [editing, setEditing] = useState(null);
   const [error, setError] = useState('');
 
   const load = () => {
     api.get('/admin/stats').then((r) => setStats(r.data)).catch((e) => setError(errMsg(e)));
     api.get('/admin/ads').then((r) => setAds(r.data.items)).catch((e) => setError(errMsg(e)));
-    api.get('/admin/users').then((r) => setUsers(r.data.items)).catch((e) => setError(errMsg(e)));
   };
   useEffect(load, []);
 
@@ -169,24 +175,26 @@ export default function Admin() {
     load();
   };
 
-  const updateUser = async (id, body) => {
-    try {
-      await api.patch(`/admin/users/${id}`, body);
-      load();
-    } catch (e) {
-      setError(errMsg(e));
-    }
-  };
-
   return (
     <div className="space-y-5">
-      <h1 className="text-2xl font-bold">Admin</h1>
+      <div>
+        <h1 className="text-2xl font-bold">Master Admin</h1>
+        {stats && (
+          <p className="text-sm text-slate-500">
+            Searches and leads are kept for {stats.retentionDays} days, then deleted for everyone. Search video ads last {stats.videoAdSeconds}s.
+          </p>
+        )}
+      </div>
       {stats && (
         <div className="grid grid-cols-2 gap-4 md:grid-cols-6">
           {[
-            ['Users', stats.users],
+            ['Clients', stats.users],
             ['Searches', stats.searches],
+            ['Shared-result searches', stats.sharedSearches],
             ['Leads', stats.leads],
+            ['Lead groups', stats.groups],
+            ['Campaigns', stats.campaigns],
+            ['Emails sent', stats.emailsSent],
             ['Active ads', stats.activeAds],
             ['Ad impressions', stats.impressions],
             ['Ad clicks', stats.clicks],
@@ -200,19 +208,22 @@ export default function Admin() {
         </div>
       )}
       {error && <div className="rounded-lg bg-red-50 p-3 text-sm text-red-700">{error}</div>}
-      <div className="flex gap-2 border-b border-slate-200">
-        {['ads', 'users'].map((t) => (
+      <div className="flex gap-2 overflow-x-auto border-b border-slate-200">
+        {Object.entries(TABS).map(([t, label]) => (
           <button
             key={t}
             type="button"
             onClick={() => setTab(t)}
-            className={`-mb-px border-b-2 px-4 py-2 text-sm font-medium capitalize ${tab === t ? 'border-blue-700 text-blue-700' : 'border-transparent text-slate-500'}`}
+            className={`-mb-px whitespace-nowrap border-b-2 px-4 py-2 text-sm font-medium ${tab === t ? 'border-blue-700 text-blue-700' : 'border-transparent text-slate-500'}`}
           >
-            {t === 'ads' ? 'Advertisements' : 'Users'}
+            {label}
           </button>
         ))}
       </div>
 
+      {tab === 'clients' && <ClientsTab />}
+      {tab === 'leads' && <AdminLeadsTable />}
+      {tab === 'searches' && <SearchesTab />}
       {tab === 'ads' && (
         <div className="space-y-4">
           <AdsenseStatus />
@@ -290,45 +301,6 @@ export default function Admin() {
               </tbody>
             </table>
           </div>
-        </div>
-      )}
-
-      {tab === 'users' && (
-        <div className="card overflow-x-auto p-0">
-          <table className="min-w-full divide-y divide-slate-200">
-            <thead className="bg-slate-50">
-              <tr>
-                <th className="th">User</th>
-                <th className="th">Role</th>
-                <th className="th">Searches</th>
-                <th className="th">Leads</th>
-                <th className="th">Last login</th>
-                <th className="th" />
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100">
-              {users.map((u) => (
-                <tr key={u._id}>
-                  <td className="td">
-                    <div className="font-medium">{u.name}</div>
-                    <div className="text-xs text-slate-500">{u.email}</div>
-                  </td>
-                  <td className="td">{u.role}</td>
-                  <td className="td">{u.searches}</td>
-                  <td className="td">{u.leads}</td>
-                  <td className="td text-xs">{u.lastLoginAt ? new Date(u.lastLoginAt).toLocaleString() : '—'}</td>
-                  <td className="td whitespace-nowrap text-right text-xs">
-                    <button type="button" className="mr-3 text-blue-700" onClick={() => updateUser(u._id, { role: u.role === 'admin' ? 'user' : 'admin' })}>
-                      Make {u.role === 'admin' ? 'user' : 'admin'}
-                    </button>
-                    <button type="button" className={u.active ? 'text-red-600' : 'text-green-700'} onClick={() => updateUser(u._id, { active: !u.active })}>
-                      {u.active ? 'Disable' : 'Enable'}
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
         </div>
       )}
     </div>

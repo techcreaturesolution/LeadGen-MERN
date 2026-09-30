@@ -121,6 +121,12 @@ export default function NewSearchForm() {
           {caps && (
             <div className="mt-2 text-xs text-slate-500">
               Maps: {providerLabel[caps.maps]} · Social: {caps.webSearch ? providerLabel[caps.webSearch] : 'not configured'} · AI: {caps.ai === 'openai' ? 'OpenAI' : 'rule-based'}
+              {caps.retentionDays && (
+                <div className="mt-1">
+                  {caps.sharedResults ? 'Matching leads found in the last ' : 'Results are kept for '}
+                  {caps.retentionDays} days{caps.sharedResults ? ' are reused instantly. Results are kept for the same period, then deleted.' : ', then deleted.'}
+                </div>
+              )}
             </div>
           )}
         </div>

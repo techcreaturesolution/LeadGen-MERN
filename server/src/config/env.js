@@ -34,6 +34,14 @@ export const env = {
   ),
   enableFreeSearchFallback: bool(process.env.ENABLE_FREE_SEARCH_FALLBACK, false),
 
+  enrichment: {
+    apolloApiKey: process.env.APOLLO_API_KEY || '',
+    hunterApiKey: process.env.HUNTER_API_KEY || '',
+    maxCompanies: Math.max(0, Number(process.env.ENRICH_MAX_COMPANIES || 20)),
+    maxDomainSearches: Math.max(0, Number(process.env.ENRICH_MAX_DOMAIN_SEARCHES || 20)),
+    contactsPerCompany: Math.min(10, Math.max(1, Number(process.env.ENRICH_CONTACTS_PER_COMPANY || 5))),
+  },
+
   adsense: {
     client: /^ca-pub-\d{10,20}$/.test(process.env.ADSENSE_CLIENT_ID || '') ? process.env.ADSENSE_CLIENT_ID : '',
     slots: {

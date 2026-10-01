@@ -10,6 +10,7 @@ import { DEMO_VIDEO_AD, pickVideoAd } from '../services/videoAds.js';
 import { mapsProvider } from '../services/sources/googleMaps.js';
 import { webSearchProvider } from '../services/sources/webSearch.js';
 import { llmEnabled } from '../services/agent/llm.js';
+import { enrichmentProviders } from '../services/enrich/index.js';
 import { ruleBasedPlan } from '../services/agent/leadAgent.js';
 import { HttpError } from '../utils/httpError.js';
 
@@ -43,6 +44,7 @@ router.get('/capabilities', (_req, res) => {
     maps: mapsProvider(),
     webSearch: webSearchProvider(),
     ai: llmEnabled() ? 'openai' : 'rules',
+    enrichment: enrichmentProviders(),
     targetCounts: TARGET_COUNTS,
     sources: SOURCES,
     retentionDays: env.dataRetentionDays,

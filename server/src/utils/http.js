@@ -67,3 +67,15 @@ export function isCompanyWebsite(url) {
   if (!d) return false;
   return !SOCIAL_OR_DIRECTORY_DOMAINS.some((s) => d === s || d.endsWith(`.${s}`));
 }
+
+export function websiteMatchesName(name, result) {
+  const tokens = String(name)
+    .toLowerCase()
+    .replace(/\b(pvt|private|ltd|limited|llp|inc|the|and|of|co)\b/g, ' ')
+    .split(/[^a-z0-9]+/)
+    .filter((t) => t.length >= 3);
+  if (!tokens.length) return false;
+  const domain = (domainOf(result.link) || '').replace(/[^a-z0-9]/g, '');
+  const title = String(result.title || '').toLowerCase();
+  return tokens.some((t) => domain.includes(t)) || tokens.every((t) => title.includes(t));
+}

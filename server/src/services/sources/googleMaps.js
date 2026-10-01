@@ -13,6 +13,9 @@ const FIELD_MASK = [
   'places.userRatingCount',
   'places.location',
   'places.primaryTypeDisplayName',
+  'places.types',
+  'places.businessStatus',
+  'places.googleMapsUri',
   'nextPageToken',
 ].join(',');
 
@@ -29,6 +32,7 @@ async function placesTextSearch(textQuery, limit) {
       },
     );
     for (const p of data.places || []) {
+      if (p.businessStatus === 'CLOSED_PERMANENTLY') continue;
       results.push({
         name: p.displayName?.text,
         category: p.primaryTypeDisplayName?.text,
@@ -39,6 +43,7 @@ async function placesTextSearch(textQuery, limit) {
         reviewsCount: p.userRatingCount,
         lat: p.location?.latitude,
         lng: p.location?.longitude,
+        mapsUrl: p.googleMapsUri,
         source: 'google_maps',
       });
     }

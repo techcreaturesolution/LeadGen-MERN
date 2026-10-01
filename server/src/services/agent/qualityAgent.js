@@ -108,7 +108,7 @@ export function clusterDuplicates(records) {
   return [...groups.values()];
 }
 
-const MERGE_FIELDS = ['category', 'address', 'city', 'phone', 'website', 'domain', 'linkedinUrl', 'instagramUrl', 'facebookUrl', 'rating', 'reviewsCount', 'lat', 'lng', 'searchLocation', 'siteTitle', 'siteDescription'];
+const MERGE_FIELDS = ['category', 'address', 'city', 'phone', 'website', 'domain', 'linkedinUrl', 'instagramUrl', 'facebookUrl', 'rating', 'reviewsCount', 'lat', 'lng', 'searchLocation', 'siteTitle', 'siteDescription', 'mapsUrl', 'companyType', 'description', 'services', 'employeeCount', 'foundedYear', 'enrichedBy'];
 const richness = (r) => MERGE_FIELDS.filter((f) => r[f] != null && r[f] !== '').length + (r.domain ? 3 : 0);
 
 export function mergeGroup(group) {
@@ -231,7 +231,7 @@ export function assessRelevance(lead, plan) {
   if (!wantsFacility && SUB_FACILITY.test(lead.name || '')) return { ...base, verification: 'rejected', matchReason: 'Part of a campus/building, not an organisation' };
   if (!loc.ok) return { ...base, verification: 'rejected', matchReason: `Outside ${(plan.locations || [plan.location]).join(' / ')}` };
   const terms = planTerms(plan);
-  const text = [lead.name, lead.category, lead.siteTitle].filter(Boolean).join(' | ');
+  const text = [lead.name, lead.category, lead.companyType, lead.siteTitle].filter(Boolean).join(' | ');
   const hits = terms.filter((t) => t.re.test(text)).map((t) => t.word);
   const missing = terms.filter((t) => !hits.includes(t.word)).map((t) => t.word);
   if (!terms.length || !missing.length) return { ...base, verification: 'verified', matchReason: terms.length ? `Matches ${hits.join(' + ')}` : 'Matches request' };

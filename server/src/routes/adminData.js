@@ -10,6 +10,7 @@ import { expiresAt, SearchJob } from '../models/SearchJob.js';
 import { Suppression } from '../models/Suppression.js';
 import { User } from '../models/User.js';
 import { EXPORT_FORMATS, sendLeadsFile, sendTableFile } from '../services/exportFile.js';
+import { dedupeLeads } from '../services/agent/qualityAgent.js';
 import { HttpError } from '../utils/httpError.js';
 import { exportSchema } from './leads.js';
 
@@ -191,6 +192,10 @@ router.get('/leads/export', async (req, res) => {
   if (filter.owner) title = `${(await User.findById(filter.owner).select('email').lean())?.email || 'client'} leads`;
   if (filter.job) title = (await SearchJob.findById(filter.job).select('query').lean())?.query || title;
   let leads = await Lead.find(filter).sort(filter.job ? { rank: 1 } : { createdAt: -1, score: -1 }).lean();
+  if (!filter.job) {
+    leads = dedupeLeads(leads.map((l) => ({ ...l, rawEmails: [] }))).leads;
+    leads.sort((a, b) => (b.score || 0) - (a.score || 0));
+  }
   if (count !== 'all') leads = leads.slice(0, Number(count));
   await sendLeadsFile(res, { title, leads, count, format });
 });

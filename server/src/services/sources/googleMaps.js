@@ -1,4 +1,5 @@
 import { env } from '../../config/env.js';
+import pLimit from 'p-limit';
 import { http, sleep } from '../../utils/http.js';
 import { searchOsm } from './osm.js';
 
@@ -13,6 +14,9 @@ const FIELD_MASK = [
   'places.userRatingCount',
   'places.location',
   'places.primaryTypeDisplayName',
+  'places.types',
+  'places.businessStatus',
+  'places.googleMapsUri',
   'nextPageToken',
 ].join(',');
 
@@ -29,6 +33,7 @@ async function placesTextSearch(textQuery, limit) {
       },
     );
     for (const p of data.places || []) {
+      if (p.businessStatus === 'CLOSED_PERMANENTLY') continue;
       results.push({
         name: p.displayName?.text,
         category: p.primaryTypeDisplayName?.text,
@@ -39,6 +44,7 @@ async function placesTextSearch(textQuery, limit) {
         reviewsCount: p.userRatingCount,
         lat: p.location?.latitude,
         lng: p.location?.longitude,
+        mapsUrl: p.googleMapsUri,
         source: 'google_maps',
       });
     }
@@ -67,6 +73,7 @@ async function serpApiMaps(textQuery, limit) {
         reviewsCount: p.reviews,
         lat: p.gps_coordinates?.latitude,
         lng: p.gps_coordinates?.longitude,
+        mapsUrl: p.place_id ? `https://www.google.com/maps/place/?q=place_id:${p.place_id}` : undefined,
         source: 'google_maps',
       });
     }
@@ -75,32 +82,55 @@ async function serpApiMaps(textQuery, limit) {
   return results;
 }
 
-export function mapsProvider() {
-  if (env.googleMapsApiKey) return 'google_places';
-  if (env.serpApiKey) return 'serpapi_google_maps';
-  return 'openstreetmap';
+const PROVIDER_SEARCH = {
+  google_places: (textQuery, _plan, limit) => placesTextSearch(textQuery, limit),
+  serpapi_google_maps: (textQuery, _plan, limit) => serpApiMaps(textQuery, limit),
+  openstreetmap: (_textQuery, plan, limit, log) => searchOsm(plan, limit, log),
+};
+
+export function mapsProviders() {
+  const list = [env.googleMapsApiKey && 'google_places', env.serpApiKey && 'serpapi_google_maps'].filter(Boolean);
+  return list.length ? list : ['openstreetmap'];
 }
 
-async function searchOneLocation(plan, limit, log) {
+export const mapsProvider = () => mapsProviders()[0];
+
+const errorText = (err) => err.response?.data?.error?.message || err.response?.data?.error || err.message;
+
+// Every configured provider runs at the same time; the pipeline's dedupe merges the overlapping places.
+export async function searchOneLocation(plan, limit, log, { providers = mapsProviders(), search = PROVIDER_SEARCH } = {}) {
   const textQuery = [plan.businessType, plan.location && `in ${plan.location}`].filter(Boolean).join(' ');
-  const provider = mapsProvider();
-  log('info', `Maps: searching "${textQuery}" via ${provider}`);
-  if (provider === 'google_places') return placesTextSearch(textQuery, limit);
-  if (provider === 'serpapi_google_maps') return serpApiMaps(textQuery, limit);
-  return searchOsm(plan, limit, log);
+  log('info', `Maps: searching "${textQuery}" via ${providers.join(' + ')}`);
+  const settled = await Promise.allSettled(providers.map((p) => search[p](textQuery, plan, limit, log)));
+  const rows = [];
+  settled.forEach((r, i) => {
+    if (r.status === 'fulfilled') {
+      if (providers.length > 1) log('info', `Maps (${providers[i]}): ${r.value.length} places`);
+      rows.push(...r.value);
+    } else {
+      log('error', `Maps (${providers[i]}) failed: ${errorText(r.reason)}`);
+    }
+  });
+  if (settled.every((r) => r.status === 'rejected')) throw settled[0].reason;
+  return rows;
 }
 
 export async function searchGoogleMaps(plan, limit, log) {
   const locations = plan.locations?.length ? plan.locations : [plan.location || ''];
-  const rows = [];
-  for (const location of locations) {
-    try {
-      const found = await searchOneLocation({ ...plan, location }, limit, log);
-      rows.push(...found.map((r) => ({ ...r, searchLocation: location || undefined })));
-    } catch (err) {
-      if (locations.length === 1) throw err;
-      log('error', `Maps (${location}) failed: ${err.response?.data?.error?.message || err.message}`);
-    }
-  }
-  return rows;
+  const limitLocations = pLimit(3);
+  const perLocation = await Promise.all(
+    locations.map((location) =>
+      limitLocations(async () => {
+        try {
+          const found = await searchOneLocation({ ...plan, location }, limit, log);
+          return found.map((r) => ({ ...r, searchLocation: location || undefined }));
+        } catch (err) {
+          if (locations.length === 1) throw err;
+          log('error', `Maps (${location}) failed: ${errorText(err)}`);
+          return [];
+        }
+      }),
+    ),
+  );
+  return perLocation.flat();
 }

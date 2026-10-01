@@ -7,9 +7,10 @@ import { Ad } from '../models/Ad.js';
 import { expiresAt, isAdLocked, publicAdGate, SearchJob, SOURCES, TARGET_COUNTS } from '../models/SearchJob.js';
 import { enqueueJob } from '../services/jobQueue.js';
 import { DEMO_VIDEO_AD, pickVideoAd } from '../services/videoAds.js';
-import { mapsProvider } from '../services/sources/googleMaps.js';
+import { mapsProviders } from '../services/sources/googleMaps.js';
 import { webSearchProvider } from '../services/sources/webSearch.js';
 import { llmEnabled } from '../services/agent/llm.js';
+import { enrichmentProviders } from '../services/enrich/index.js';
 import { ruleBasedPlan } from '../services/agent/leadAgent.js';
 import { HttpError } from '../utils/httpError.js';
 
@@ -40,9 +41,11 @@ const createSchema = z.object({
 
 router.get('/capabilities', (_req, res) => {
   res.json({
-    maps: mapsProvider(),
+    maps: mapsProviders()[0],
+    mapsProviders: mapsProviders(),
     webSearch: webSearchProvider(),
     ai: llmEnabled() ? 'openai' : 'rules',
+    enrichment: enrichmentProviders(),
     targetCounts: TARGET_COUNTS,
     sources: SOURCES,
     retentionDays: env.dataRetentionDays,

@@ -112,8 +112,8 @@ function emailConfidence(email, category, targetRole, siteDomain, prefixes) {
 export function rankEmails(emails, plan, website) {
   const siteDomain = domainOf(website);
   const prefixes = plan.emailPrefixes?.length ? plan.emailPrefixes : rolePrefixes(plan.targetRole);
-  const scored = emails.map(({ email, foundOn, mxValid }) => {
-    const category = categorizeEmail(email);
+  const scored = emails.map(({ email, foundOn, mxValid, category: hint }) => {
+    const category = hint || categorizeEmail(email);
     return { email, foundOn, mxValid, category, confidence: emailConfidence(email, category, plan.targetRole, siteDomain, prefixes) };
   });
   const order = { hr: 1, generic: 2, sales: 3, support: 4, other: 5, personal: 6 };

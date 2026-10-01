@@ -36,6 +36,8 @@ const searchJobSchema = new mongoose.Schema(
       verified: Number,
       emailsRemoved: Number,
       aiChecked: Boolean,
+      enrichedCompanies: Number,
+      enrichedContacts: Number,
     },
     logs: [{ at: { type: Date, default: Date.now }, level: String, message: String }],
     adGate: {

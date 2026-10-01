@@ -9,7 +9,7 @@ import StatusBadge from '../components/StatusBadge.jsx';
 import VideoAdGate from '../components/VideoAdGate.jsx';
 import { api, daysLeft, errMsg, SOURCE_LABELS } from '../lib/api.js';
 
-const STAGES = ['planning', 'discovering', 'resolving websites', 'crawling websites', 'qualifying', 'ai summary', 'done'];
+const STAGES = ['planning', 'discovering', 'resolving websites', 'enriching companies', 'crawling websites', 'qualifying', 'finding contacts', 'ai summary', 'done'];
 
 export default function SearchDetail() {
   const { id } = useParams();

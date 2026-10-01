@@ -57,6 +57,32 @@ export default function LeadsTable({ leads, showRank = true, selected, onToggle,
                   )}
                 </div>
                 <div className="text-xs text-slate-500">{[l.category, l.address || l.city].filter(Boolean).join(' · ')}</div>
+                {(l.companyType || l.employeeCount || l.foundedYear) && (
+                  <div className="mt-0.5 text-xs text-slate-600">
+                    {[l.companyType, l.employeeCount && `${l.employeeCount} employees`, l.foundedYear && `since ${l.foundedYear}`].filter(Boolean).join(' · ')}
+                  </div>
+                )}
+                {l.description && (
+                  <div className="mt-0.5 line-clamp-2 text-xs text-slate-500" title={l.description}>
+                    {l.description}
+                  </div>
+                )}
+                {l.contacts?.length > 0 && (
+                  <div className="mt-1 space-y-0.5 text-xs text-slate-700">
+                    {l.contacts.slice(0, 3).map((c, i) => (
+                      <div key={c.email || `${c.name}-${i}`}>
+                        <span className="font-medium">{c.name || 'Contact'}</span>
+                        {c.title && <span className="text-slate-500"> · {c.title}</span>}
+                        {c.email && (
+                          <a className="ml-1 text-blue-700 hover:underline" href={`mailto:${c.email}`}>
+                            {c.email}
+                          </a>
+                        )}
+                      </div>
+                    ))}
+                    {l.contacts.length > 3 && <div className="text-slate-400">+{l.contacts.length - 3} more contacts</div>}
+                  </div>
+                )}
                 {l.aiNote && <div className="mt-1 text-xs italic text-blue-700">AI: {l.aiNote}</div>}
               </td>
               <td className="td">
@@ -95,8 +121,16 @@ export default function LeadsTable({ leads, showRank = true, selected, onToggle,
                     Instagram
                   </a>
                 )}
+                {l.mapsUrl && (
+                  <a className="block text-emerald-700 hover:underline" href={l.mapsUrl} target="_blank" rel="noreferrer">
+                    Google Maps
+                  </a>
+                )}
               </td>
-              <td className="td text-xs">{(l.sources || []).map((s) => SOURCE_LABELS[s] || s).join(', ')}</td>
+              <td className="td text-xs">
+                {(l.sources || []).map((s) => SOURCE_LABELS[s] || s).join(', ')}
+                {l.enrichedBy?.length > 0 && <div className="text-slate-400">+ {l.enrichedBy.map((e) => (e === 'apollo' ? 'Apollo.io' : 'Hunter.io')).join(', ')}</div>}
+              </td>
               <td className="td">
                 <div className="flex items-center gap-2">
                   <div className="h-1.5 w-12 rounded bg-slate-200">

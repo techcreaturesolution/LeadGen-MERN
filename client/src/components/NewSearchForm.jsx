@@ -16,6 +16,8 @@ const providerLabel = {
   serpapi: 'SerpAPI',
   google_cse: 'Google Programmable Search',
   bing_html: 'Bing (experimental)',
+  apollo: 'Apollo.io',
+  hunter: 'Hunter.io',
 };
 
 export default function NewSearchForm() {
@@ -120,7 +122,8 @@ export default function NewSearchForm() {
           </div>
           {caps && (
             <div className="mt-2 text-xs text-slate-500">
-              Maps: {providerLabel[caps.maps]} · Social: {caps.webSearch ? providerLabel[caps.webSearch] : 'not configured'} · AI: {caps.ai === 'openai' ? 'OpenAI' : 'rule-based'}
+              Maps: {(caps.mapsProviders || [caps.maps]).map((m) => providerLabel[m]).join(' + ')} · Social: {caps.webSearch ? providerLabel[caps.webSearch] : 'not configured'} · AI: {caps.ai === 'openai' ? 'OpenAI' : 'rule-based'} · Enrichment:{' '}
+              {caps.enrichment?.length ? caps.enrichment.map((e) => providerLabel[e]).join(' + ') : 'not configured'}
               {caps.retentionDays && (
                 <div className="mt-1">
                   {caps.sharedResults ? 'Matching leads found in the last ' : 'Results are kept for '}

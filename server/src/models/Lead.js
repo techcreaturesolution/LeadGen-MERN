@@ -11,6 +11,19 @@ const emailSchema = new mongoose.Schema(
   { _id: false },
 );
 
+const contactSchema = new mongoose.Schema(
+  {
+    name: String,
+    title: String,
+    department: String,
+    seniority: String,
+    email: { type: String, lowercase: true, trim: true },
+    linkedinUrl: String,
+    source: String,
+  },
+  { _id: false },
+);
+
 const leadSchema = new mongoose.Schema(
   {
     owner: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true, index: true },
@@ -32,6 +45,7 @@ const leadSchema = new mongoose.Schema(
     reviewsCount: Number,
     lat: Number,
     lng: Number,
+    mapsUrl: String,
     sources: [String],
     score: { type: Number, default: 0 },
     aiNote: String,
@@ -41,6 +55,13 @@ const leadSchema = new mongoose.Schema(
     matchedLocation: String,
     aiVerified: Boolean,
     siteTitle: String,
+    companyType: String,
+    description: String,
+    services: [String],
+    employeeCount: Number,
+    foundedYear: Number,
+    contacts: [contactSchema],
+    enrichedBy: [String],
     dedupeKey: { type: String, index: true },
     discoveredAt: { type: Date, index: true },
     reusedFrom: { type: mongoose.Schema.Types.ObjectId, ref: 'SearchJob' },

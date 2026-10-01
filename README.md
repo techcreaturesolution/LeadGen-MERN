@@ -4,10 +4,11 @@ AI-assisted B2B lead generation from **Google Maps**, **LinkedIn** and **Instagr
 Type a request like _"HR email of IT companies in Ahmedabad"_, pick 20 / 40 / 60 leads, and the agent:
 
 1. **Plans** the search (business type, location, target mailbox such as HR / sales / CEO) — OpenAI if configured, otherwise a rule-based planner.
-2. **Discovers** businesses on Google Maps (Places API → SerpAPI → OpenStreetMap fallback) and company pages on LinkedIn / Instagram (SerpAPI or Google Programmable Search).
-3. **Resolves** each business's official website and **crawls** home / contact / careers / about pages for emails (incl. Cloudflare-obfuscated), phones and social links.
-4. **Qualifies** leads: classifies emails (`hr`, `sales`, `support`, `generic`, `personal`), ranks the one matching your target role first and scores each lead.
-5. **Exports** Excel or CSV reports (Top 20 / 40 / 60 / All). Excel has a `Summary` sheet (counts, email-type and source breakdown, Top 20/40/60 metrics) and a `Leads` sheet.
+2. **Discovers** businesses on Google Maps (Google Places API and SerpAPI Google Maps run in parallel when both keys are set and their results are merged; OpenStreetMap when neither is set) and company pages on LinkedIn / Instagram (SerpAPI or Google Programmable Search).
+3. **Enriches** missing data with Apollo.io (company type/industry, what they do, services, employee count, decision-makers) and Hunter.io (domain email search with name and designation) when their keys are set — see *Starter enrichment* below.
+4. **Resolves** each business's official website and **crawls** home / contact / careers / about pages for emails (incl. Cloudflare-obfuscated), phones and social links.
+5. **Qualifies** leads: classifies emails (`hr`, `sales`, `support`, `generic`, `personal`), ranks the one matching your target role first and scores each lead.
+6. **Exports** Excel or CSV reports (Top 20 / 40 / 60 / All). Excel has a `Summary` sheet (counts, email-type and source breakdown, Top 20/40/60 metrics) and a `Leads` sheet.
 
 Other features:
 
@@ -57,8 +58,11 @@ Without any API keys the app still works: OpenStreetMap for businesses, rule-bas
 | `ADMIN_EMAILS` | Emails that become admins (manage ads & users) |
 | `DEV_LOGIN_ENABLED` | `true` for local email-only login (ignored in production) |
 | `GOOGLE_MAPS_API_KEY` | Google Places API (New) — best Google Maps results |
-| `SERPAPI_KEY` | SerpAPI — Google Maps fallback **and** LinkedIn/Instagram discovery |
+| `SERPAPI_KEY` | SerpAPI — Google Maps (in parallel with Places when both are set) **and** LinkedIn/Instagram discovery |
 | `GOOGLE_CSE_KEY`, `GOOGLE_CSE_CX` | Alternative for LinkedIn/Instagram discovery |
+| `APOLLO_API_KEY` | Apollo.io: fills missing website, company type/industry, what the company does, services, employee count, founded year and decision-makers (name + designation) |
+| `HUNTER_API_KEY` | Hunter.io Domain Search: finds emails (with name, designation, department) for leads still missing the requested role's email |
+| `ENRICH_MAX_COMPANIES`, `ENRICH_MAX_DOMAIN_SEARCHES`, `ENRICH_CONTACTS_PER_COMPANY` | Credit caps per search: Apollo company lookups (default `20`), Hunter/Apollo contact lookups (default `20`), contacts kept per company (default `5`) |
 | `OPENAI_API_KEY`, `OPENAI_MODEL` | Enables the LLM planner & AI summaries/notes |
 | `ADSENSE_CLIENT_ID`, `ADSENSE_SLOT_{BANNER,SIDEBAR,INLINE,RAIL}` | Google AdSense publisher ID and display ad unit IDs |
 | `ADSENSE_TEST_MODE`, `ADSENSE_DEMO` | `data-adtest="on"` for non-billed test ads; show demo creatives in unconfigured slots (default `true`) |
@@ -98,6 +102,21 @@ Setup:
 - Places API (New): enable **Places API (New)** in the same project and create an API key → `GOOGLE_MAPS_API_KEY`.
 - SerpAPI: https://serpapi.com/manage-api-key → `SERPAPI_KEY`.
 - Programmable Search: create an engine searching the whole web → `GOOGLE_CSE_CX`, key from Custom Search JSON API → `GOOGLE_CSE_KEY`.
+
+### Starter enrichment (fast, low cost): Places + Apollo.io + Hunter.io
+
+When `GOOGLE_MAPS_API_KEY`, `APOLLO_API_KEY` and `HUNTER_API_KEY` are set, each search runs:
+
+1. **Google Places API (New) Text Search** finds the businesses (name, address, phone, website, category, Maps link; permanently closed places are skipped).
+2. **Apollo.io Organization Enrichment** (1 credit per company) fills what is missing: website (matched by name + city when Maps has none), company type/industry, what they do, services, employee count, founded year, LinkedIn.
+3. The company website is crawled for public emails as before.
+4. **Hunter.io Domain Search** runs only for domains where no email of the requested role (HR, sales…) was found, adding emails with the person's name, designation and department.
+5. **Apollo.io People API Search** (no credits) adds decision-makers' first name and designation. Apollo does not return emails from this endpoint.
+
+Each step is skipped when its key is missing, and a provider that returns an auth/quota error (401/402/403/429) is stopped for the rest of that search. Results show in the leads table and in the Excel/CSV columns *Company Type / Industry*, *What They Do*, *Services / Keywords*, *Employees*, *Founded*, *Key Contacts* and *Data Enriched By*.
+
+- Apollo.io key: https://app.apollo.io/#/settings/integrations/api → `APOLLO_API_KEY` (Apollo requires an account registered with a work email for API access).
+- Hunter.io key: https://hunter.io/api-keys → `HUNTER_API_KEY`.
 
 ### Google AdSense
 

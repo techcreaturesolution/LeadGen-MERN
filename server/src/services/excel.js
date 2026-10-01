@@ -9,6 +9,12 @@ export const COLUMNS = [
   { header: 'Phone', key: 'phone', width: 18 },
   { header: 'Website', key: 'website', width: 32 },
   { header: 'Category', key: 'category', width: 20 },
+  { header: 'Company Type / Industry', key: 'companyType', width: 26 },
+  { header: 'What They Do', key: 'description', width: 50 },
+  { header: 'Services / Keywords', key: 'services', width: 36 },
+  { header: 'Employees', key: 'employeeCount', width: 10 },
+  { header: 'Founded', key: 'foundedYear', width: 9 },
+  { header: 'Key Contacts (Name - Designation - Email)', key: 'contacts', width: 60 },
   { header: 'Match', key: 'match', width: 14 },
   { header: 'Match Evidence', key: 'matchReason', width: 40 },
   { header: 'Address', key: 'address', width: 40 },
@@ -18,12 +24,21 @@ export const COLUMNS = [
   { header: 'Reviews', key: 'reviewsCount', width: 9 },
   { header: 'LinkedIn', key: 'linkedinUrl', width: 32 },
   { header: 'Instagram', key: 'instagramUrl', width: 32 },
+  { header: 'Google Maps Link', key: 'mapsUrl', width: 32 },
   { header: 'Sources', key: 'sources', width: 22 },
+  { header: 'Data Enriched By', key: 'enrichedBy', width: 18 },
   { header: 'Lead Score', key: 'score', width: 10 },
   { header: 'AI Note', key: 'aiNote', width: 45 },
 ];
 
 const SOURCE_LABEL = { google_maps: 'Google Maps', linkedin: 'LinkedIn', instagram: 'Instagram' };
+const ENRICHER_LABEL = { apollo: 'Apollo.io', hunter: 'Hunter.io' };
+
+export const formatContacts = (contacts = []) =>
+  contacts
+    .map((c) => [c.name, c.title, c.email].filter(Boolean).join(' - '))
+    .filter(Boolean)
+    .join('; ');
 
 const clean = (v) => (typeof v === 'string' ? v.replace(/\s+/g, ' ').trim() : v);
 
@@ -58,6 +73,9 @@ export function leadRows(leads) {
     match: matchLabel(l),
     emailCheck: emailCheck(l),
     sources: (l.sources || []).map((s) => SOURCE_LABEL[s] || s).join(', '),
+    services: (l.services || []).join(', '),
+    contacts: formatContacts(l.contacts),
+    enrichedBy: (l.enrichedBy || []).map((s) => ENRICHER_LABEL[s] || s).join(', '),
   }));
 }
 
@@ -103,6 +121,8 @@ export async function buildLeadsWorkbook({ title, leads: input, count, jobs = []
   }
   const verifiedCount = leads.filter((l) => l.verification === 'verified').length;
   if (leads.some((l) => l.verification)) summary.addRow({ metric: 'Verified matches', value: `${verifiedCount} / ${leads.length}` });
+  summary.addRow({ metric: 'Leads with company type', value: leads.filter((l) => l.companyType).length });
+  summary.addRow({ metric: 'Leads with key contacts', value: leads.filter((l) => l.contacts?.length).length });
   summary.addRow({ metric: 'Duplicate rows in report', value: 0 });
   if (jobs.length) {
     summary.addRow({});
@@ -117,6 +137,8 @@ export async function buildLeadsWorkbook({ title, leads: input, count, jobs = []
           { metric: 'Off-target businesses removed', value: q.rejected },
           { metric: 'Invalid / shared emails removed', value: q.emailsRemoved },
           { metric: 'AI verification agent', value: q.aiChecked ? 'On' : 'Off (rule-based checks only)' },
+          ...(q.enrichedCompanies ? [{ metric: 'Companies enriched (Apollo.io)', value: q.enrichedCompanies }] : []),
+          ...(q.enrichedContacts ? [{ metric: 'Contact lookups with results (Hunter.io / Apollo.io)', value: q.enrichedContacts }] : []),
         ]);
       }
     });
@@ -127,7 +149,7 @@ export async function buildLeadsWorkbook({ title, leads: input, count, jobs = []
   styleHeader(sheet.getRow(1));
   sheet.addRows(leadRows(leads));
   sheet.autoFilter = { from: 'A1', to: { row: 1, column: COLUMNS.length } };
-  for (const key of ['website', 'linkedinUrl', 'instagramUrl']) {
+  for (const key of ['website', 'linkedinUrl', 'instagramUrl', 'mapsUrl']) {
     const col = sheet.getColumn(key);
     col.eachCell((cell, rowNum) => {
       if (rowNum > 1 && typeof cell.value === 'string' && cell.value.startsWith('http')) {

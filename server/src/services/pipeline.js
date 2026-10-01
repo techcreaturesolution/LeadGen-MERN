@@ -2,7 +2,7 @@ import pLimit from 'p-limit';
 import { env } from '../config/env.js';
 import { Lead } from '../models/Lead.js';
 import { SearchJob } from '../models/SearchJob.js';
-import { domainOf, isCompanyWebsite, normalizeUrl } from '../utils/http.js';
+import { domainOf, isCompanyWebsite, normalizeUrl, websiteMatchesName } from '../utils/http.js';
 import { crawlWebsite } from './crawler.js';
 import { planSearch, rankEmails, scoreLead, summarizeJob } from './agent/leadAgent.js';
 import { aiVerify, assessRelevance, cleanEmails, dedupeKey, dedupeLeads, normName } from './agent/qualityAgent.js';
@@ -11,18 +11,7 @@ import { searchGoogleMaps } from './sources/googleMaps.js';
 import { findOfficialWebsite, searchInstagram, searchLinkedIn } from './sources/social.js';
 import { webSearchProvider } from './sources/webSearch.js';
 import { findCachedLeads, mergeWithCached, searchCacheKey } from './leadCache.js';
-
-function websiteMatchesName(name, result) {
-  const tokens = String(name)
-    .toLowerCase()
-    .replace(/\b(pvt|private|ltd|limited|llp|inc|the|and|of|co)\b/g, ' ')
-    .split(/[^a-z0-9]+/)
-    .filter((t) => t.length >= 3);
-  if (!tokens.length) return false;
-  const domain = (domainOf(result.link) || '').replace(/[^a-z0-9]/g, '');
-  const title = String(result.title || '').toLowerCase();
-  return tokens.some((t) => domain.includes(t)) || tokens.every((t) => title.includes(t));
-}
+import { enrichCompanies, enrichContacts, enrichmentProviders } from './enrich/index.js';
 
 function toRecord(c) {
   const website = c.website && isCompanyWebsite(c.website) ? normalizeUrl(c.website) : null;
@@ -127,23 +116,25 @@ export async function runSearchJob(jobId) {
       linkedin: perLocation(searchLinkedIn, Math.ceil(target / locations.length) + 5),
       instagram: perLocation(searchInstagram, Math.ceil(target / locations.length) + 5),
     };
-    for (const source of job.sources) {
-      if ((source === 'linkedin' || source === 'instagram') && !webSearchProvider()) {
-        log('warn', `${source}: skipped, no web search provider configured`);
-        continue;
-      }
-      try {
-        const rows = await runners[source]();
-        sourceStats[source] = rows.length;
-        candidates.push(...rows);
-        log('info', `${source}: ${rows.length} raw results`);
-      } catch (err) {
-        sourceStats[source] = 0;
-        log('error', `${source} failed: ${err.response?.data?.error?.message || err.message}`);
-      }
-      progress.discovered = candidates.length;
-      await flush(true, { sourceStats });
-    }
+    await Promise.all(
+      job.sources.map(async (source) => {
+        if ((source === 'linkedin' || source === 'instagram') && !webSearchProvider()) {
+          log('warn', `${source}: skipped, no web search provider configured`);
+          return;
+        }
+        try {
+          const rows = await runners[source]();
+          sourceStats[source] = rows.length;
+          candidates.push(...rows);
+          log('info', `${source}: ${rows.length} raw results`);
+        } catch (err) {
+          sourceStats[source] = 0;
+          log('error', `${source} failed: ${err.response?.data?.error?.message || err.message}`);
+        }
+        progress.discovered = candidates.length;
+        await flush(true, { sourceStats });
+      }),
+    );
 
     const quality = { rawResults: candidates.length, duplicatesRemoved: 0, rejected: 0, likely: 0, verified: 0, emailsRemoved: 0, aiChecked: llmEnabled() };
     const records = candidates.filter((c) => c.name && normName(c.name)).map(toRecord);
@@ -177,6 +168,13 @@ export async function runSearchJob(jobId) {
           }),
         ),
       );
+    }
+
+    if (enrichmentProviders().includes('apollo')) {
+      progress.stage = 'enriching companies';
+      await flush(true);
+      quality.enrichedCompanies = await enrichCompanies(leads, log);
+      log('info', `Apollo.io: added company details for ${quality.enrichedCompanies} businesses`);
     }
 
     ({ leads, removed } = dedupeLeads(leads));
@@ -225,8 +223,18 @@ export async function runSearchJob(jobId) {
     rejected.slice(0, 8).forEach((l) => log('info', `Dropped "${l.name}": ${l.matchReason}`));
     leads = leads.filter((l) => l.verification !== 'rejected');
 
+    if (enrichmentProviders().length) {
+      progress.stage = 'finding contacts';
+      await flush(true);
+      const found = await enrichContacts(leads, plan, log);
+      quality.enrichedContacts = found.hunter + found.apollo;
+      log('info', `Contact enrichment: Hunter.io emails for ${found.hunter} domains, Apollo.io decision-makers for ${found.apollo} companies`);
+    }
+
     quality.emailsRemoved = await cleanEmails(leads);
     for (const l of leads) {
+      const kept = new Set(l.rawEmails.map((e) => e.email));
+      if (l.contacts?.length) l.contacts = l.contacts.map((c) => (c.email && !kept.has(c.email) ? { ...c, email: undefined } : c));
       l.emails = rankEmails(l.rawEmails, plan, l.website).slice(0, 10);
       l.primaryEmail = l.emails[0]?.email;
       l.primaryEmailCategory = l.emails[0]?.category;

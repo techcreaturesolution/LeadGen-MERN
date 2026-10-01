@@ -122,7 +122,7 @@ export default function NewSearchForm() {
           </div>
           {caps && (
             <div className="mt-2 text-xs text-slate-500">
-              Maps: {providerLabel[caps.maps]} · Social: {caps.webSearch ? providerLabel[caps.webSearch] : 'not configured'} · AI: {caps.ai === 'openai' ? 'OpenAI' : 'rule-based'} · Enrichment:{' '}
+              Maps: {(caps.mapsProviders || [caps.maps]).map((m) => providerLabel[m]).join(' + ')} · Social: {caps.webSearch ? providerLabel[caps.webSearch] : 'not configured'} · AI: {caps.ai === 'openai' ? 'OpenAI' : 'rule-based'} · Enrichment:{' '}
               {caps.enrichment?.length ? caps.enrichment.map((e) => providerLabel[e]).join(' + ') : 'not configured'}
               {caps.retentionDays && (
                 <div className="mt-1">

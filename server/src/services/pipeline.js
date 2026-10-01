@@ -116,23 +116,25 @@ export async function runSearchJob(jobId) {
       linkedin: perLocation(searchLinkedIn, Math.ceil(target / locations.length) + 5),
       instagram: perLocation(searchInstagram, Math.ceil(target / locations.length) + 5),
     };
-    for (const source of job.sources) {
-      if ((source === 'linkedin' || source === 'instagram') && !webSearchProvider()) {
-        log('warn', `${source}: skipped, no web search provider configured`);
-        continue;
-      }
-      try {
-        const rows = await runners[source]();
-        sourceStats[source] = rows.length;
-        candidates.push(...rows);
-        log('info', `${source}: ${rows.length} raw results`);
-      } catch (err) {
-        sourceStats[source] = 0;
-        log('error', `${source} failed: ${err.response?.data?.error?.message || err.message}`);
-      }
-      progress.discovered = candidates.length;
-      await flush(true, { sourceStats });
-    }
+    await Promise.all(
+      job.sources.map(async (source) => {
+        if ((source === 'linkedin' || source === 'instagram') && !webSearchProvider()) {
+          log('warn', `${source}: skipped, no web search provider configured`);
+          return;
+        }
+        try {
+          const rows = await runners[source]();
+          sourceStats[source] = rows.length;
+          candidates.push(...rows);
+          log('info', `${source}: ${rows.length} raw results`);
+        } catch (err) {
+          sourceStats[source] = 0;
+          log('error', `${source} failed: ${err.response?.data?.error?.message || err.message}`);
+        }
+        progress.discovered = candidates.length;
+        await flush(true, { sourceStats });
+      }),
+    );
 
     const quality = { rawResults: candidates.length, duplicatesRemoved: 0, rejected: 0, likely: 0, verified: 0, emailsRemoved: 0, aiChecked: llmEnabled() };
     const records = candidates.filter((c) => c.name && normName(c.name)).map(toRecord);

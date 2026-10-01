@@ -4,7 +4,7 @@ AI-assisted B2B lead generation from **Google Maps**, **LinkedIn** and **Instagr
 Type a request like _"HR email of IT companies in Ahmedabad"_, pick 20 / 40 / 60 leads, and the agent:
 
 1. **Plans** the search (business type, location, target mailbox such as HR / sales / CEO) — OpenAI if configured, otherwise a rule-based planner.
-2. **Discovers** businesses on Google Maps (Places API → SerpAPI → OpenStreetMap fallback) and company pages on LinkedIn / Instagram (SerpAPI or Google Programmable Search).
+2. **Discovers** businesses on Google Maps (Google Places API and SerpAPI Google Maps run in parallel when both keys are set and their results are merged; OpenStreetMap when neither is set) and company pages on LinkedIn / Instagram (SerpAPI or Google Programmable Search).
 3. **Enriches** missing data with Apollo.io (company type/industry, what they do, services, employee count, decision-makers) and Hunter.io (domain email search with name and designation) when their keys are set — see *Starter enrichment* below.
 4. **Resolves** each business's official website and **crawls** home / contact / careers / about pages for emails (incl. Cloudflare-obfuscated), phones and social links.
 5. **Qualifies** leads: classifies emails (`hr`, `sales`, `support`, `generic`, `personal`), ranks the one matching your target role first and scores each lead.
@@ -58,7 +58,7 @@ Without any API keys the app still works: OpenStreetMap for businesses, rule-bas
 | `ADMIN_EMAILS` | Emails that become admins (manage ads & users) |
 | `DEV_LOGIN_ENABLED` | `true` for local email-only login (ignored in production) |
 | `GOOGLE_MAPS_API_KEY` | Google Places API (New) — best Google Maps results |
-| `SERPAPI_KEY` | SerpAPI — Google Maps fallback **and** LinkedIn/Instagram discovery |
+| `SERPAPI_KEY` | SerpAPI — Google Maps (in parallel with Places when both are set) **and** LinkedIn/Instagram discovery |
 | `GOOGLE_CSE_KEY`, `GOOGLE_CSE_CX` | Alternative for LinkedIn/Instagram discovery |
 | `APOLLO_API_KEY` | Apollo.io: fills missing website, company type/industry, what the company does, services, employee count, founded year and decision-makers (name + designation) |
 | `HUNTER_API_KEY` | Hunter.io Domain Search: finds emails (with name, designation, department) for leads still missing the requested role's email |

@@ -122,7 +122,7 @@ export default function VideoAdGate({ jobId, onUnlocked }) {
     setFinishing(false);
   }, [send, jobId, onUnlocked]);
 
-  const seconds = info?.seconds || 60;
+  const seconds = info?.seconds || 30;
 
   useEffect(() => {
     if (!playing) return;

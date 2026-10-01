@@ -3,14 +3,19 @@ import { z } from 'zod';
 import { Lead } from '../models/Lead.js';
 import { isAdLocked, SearchJob } from '../models/SearchJob.js';
 import { dedupeLeads } from '../services/agent/qualityAgent.js';
-import { buildLeadsWorkbook } from '../services/excel.js';
+import { EXPORT_FORMATS, sendLeadsFile } from '../services/exportFile.js';
 import { HttpError } from '../utils/httpError.js';
 
 const router = Router();
 
+export const exportSchema = z.object({
+  count: z.enum(['20', '40', '60', 'all']).default('20'),
+  format: z.enum(EXPORT_FORMATS).default('xlsx'),
+});
+
 const LOCKED_MSG = 'Watch the full video ad to unlock the results of this search';
 
-async function buildFilter(user, q) {
+export async function buildFilter(user, q) {
   const filter = { owner: user._id };
   if (q.jobId) {
     const job = await SearchJob.findOne({ _id: q.jobId, owner: user._id }).select('adGate').lean();
@@ -66,7 +71,7 @@ router.get('/stats', async (req, res) => {
 });
 
 router.get('/export', async (req, res) => {
-  const { count } = z.object({ count: z.enum(['20', '40', '60', 'all']).default('20') }).parse(req.query);
+  const { count, format } = exportSchema.parse(req.query);
   const filter = await buildFilter(req.user, req.query);
   let title = 'All leads';
   let jobs = [];
@@ -84,11 +89,7 @@ router.get('/export', async (req, res) => {
     leads.sort((a, b) => (b.score || 0) - (a.score || 0));
   }
   if (count !== 'all') leads = leads.slice(0, Number(count));
-  const buffer = await buildLeadsWorkbook({ title, leads, count, jobs });
-  const safe = title.replace(/[^a-z0-9]+/gi, '-').replace(/^-|-$/g, '').slice(0, 50) || 'leads';
-  res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-  res.setHeader('Content-Disposition', `attachment; filename="${safe}-${count}.xlsx"`);
-  res.send(Buffer.from(buffer));
+  await sendLeadsFile(res, { title, leads, count, jobs, format });
 });
 
 router.delete('/:id', async (req, res) => {

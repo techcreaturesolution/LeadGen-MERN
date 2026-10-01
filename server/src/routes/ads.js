@@ -1,7 +1,9 @@
 import { Router } from 'express';
 import { z } from 'zod';
 import { Ad, AD_PLACEMENTS } from '../models/Ad.js';
+import { env } from '../config/env.js';
 import { HttpError } from '../utils/httpError.js';
+import { DEMO_VIDEO_AD, pickVideoAd } from '../services/videoAds.js';
 
 const router = Router();
 
@@ -29,6 +31,20 @@ router.get('/', async (req, res) => {
     .map((x) => x.a);
   if (picked.length) await Ad.updateMany({ _id: { $in: picked.map((a) => a._id) } }, { $inc: { impressions: 1 } });
   res.json({ items: picked });
+});
+
+router.get('/video/next', async (req, res) => {
+  const exempt = env.videoAd.exemptAdmins && req.user.role === 'admin';
+  if (!env.videoAd.duringCampaigns || exempt) return res.json({ enabled: false, ad: null });
+  const exclude = /^[a-f0-9]{24}$/i.test(String(req.query.exclude || '')) ? req.query.exclude : undefined;
+  const ad = await pickVideoAd({ exclude });
+  if (ad) await Ad.updateOne({ _id: ad._id }, { $inc: { impressions: 1 } });
+  res.json({ enabled: true, ad: ad || DEMO_VIDEO_AD });
+});
+
+router.post('/:id/video-complete', async (req, res) => {
+  await Ad.updateOne({ _id: req.params.id, placement: 'video' }, { $inc: { completedViews: 1 } });
+  res.json({ ok: true });
 });
 
 router.post('/:id/click', async (req, res) => {

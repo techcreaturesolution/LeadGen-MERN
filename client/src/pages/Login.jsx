@@ -60,7 +60,7 @@ export default function Login() {
         <ul className="mb-6 space-y-1 text-sm text-slate-600">
           <li>• Ask in plain English: “HR email of IT companies in Ahmedabad”</li>
           <li>• AI agent discovers businesses and crawls their sites for emails</li>
-          <li>• Download Excel reports of 20, 40 or 60 leads</li>
+          <li>• Download Excel or CSV reports of 20, 40 or 60 leads</li>
         </ul>
 
         {!config && !error && <div className="text-center text-sm text-slate-500">Loading…</div>}

@@ -30,9 +30,19 @@ export default function Layout() {
           <NavLink to="/leads" className={linkCls}>
             All leads
           </NavLink>
+          <div className="px-3 pt-3 text-[11px] font-semibold uppercase tracking-wider text-slate-400">Email outreach</div>
+          <NavLink to="/groups" className={linkCls}>
+            Lead groups
+          </NavLink>
+          <NavLink to="/templates" className={linkCls}>
+            Email templates
+          </NavLink>
+          <NavLink to="/campaigns" className={linkCls}>
+            Campaigns
+          </NavLink>
           {user?.role === 'admin' && (
             <NavLink to="/admin" className={linkCls}>
-              Admin · Ads &amp; users
+              Master Admin
             </NavLink>
           )}
         </nav>
@@ -60,10 +70,12 @@ export default function Layout() {
       <div className="flex min-w-0 flex-1 flex-col">
         <header className="flex items-center justify-between border-b border-slate-200 bg-white px-4 py-3 md:hidden">
           <span className="font-semibold">LeadGen AI</span>
-          <nav className="flex gap-3 text-sm">
+          <nav className="flex flex-wrap gap-3 text-sm">
             <NavLink to="/">Home</NavLink>
             <NavLink to="/searches">Searches</NavLink>
             <NavLink to="/leads">Leads</NavLink>
+            <NavLink to="/groups">Groups</NavLink>
+            <NavLink to="/campaigns">Mail</NavLink>
             {user?.role === 'admin' && <NavLink to="/admin">Admin</NavLink>}
             <button type="button" onClick={logout}>
               Logout

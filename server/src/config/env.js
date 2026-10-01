@@ -17,6 +17,7 @@ export const env = {
   clientOrigins: list(process.env.CLIENT_ORIGIN || 'http://localhost:5173'),
 
   googleClientId: process.env.GOOGLE_CLIENT_ID || '',
+  googleClientSecret: process.env.GOOGLE_CLIENT_SECRET || '',
   allowedEmailDomains: list(process.env.ALLOWED_EMAIL_DOMAINS),
   adminEmails: list(process.env.ADMIN_EMAILS),
   devLoginEnabled: bool(process.env.DEV_LOGIN_ENABLED) && process.env.NODE_ENV !== 'production',
@@ -47,19 +48,36 @@ export const env = {
 
   videoAd: {
     required: bool(process.env.VIDEO_AD_REQUIRED, true),
-    seconds: Math.max(5, Number(process.env.VIDEO_AD_SECONDS || 60)),
+    seconds: Math.max(5, Number(process.env.VIDEO_AD_SECONDS || 30)),
     exemptAdmins: bool(process.env.VIDEO_AD_EXEMPT_ADMINS, true),
+    duringCampaigns: bool(process.env.VIDEO_AD_DURING_CAMPAIGNS, true),
     vastTag: /^https:\/\//.test(process.env.VIDEO_AD_VAST_TAG || '') ? process.env.VIDEO_AD_VAST_TAG : '',
   },
 
   emailMxCheck: bool(process.env.EMAIL_MX_CHECK, true),
   leadMatchMode: process.env.LEAD_MATCH_MODE === 'balanced' ? 'balanced' : 'strict',
+  dataRetentionDays: Math.max(1, Number(process.env.DATA_RETENTION_DAYS || 7)),
+  sharedLeadCache: bool(process.env.SHARED_LEAD_CACHE, true),
+
+  mail: {
+    redirectUri: process.env.GMAIL_REDIRECT_URI || `http://localhost:${process.env.PORT || 5000}/api/gmail/callback`,
+    tokenKey: process.env.TOKEN_ENCRYPTION_KEY || '',
+    dryRun: bool(process.env.EMAIL_DRY_RUN, false),
+    dailyLimit: Math.max(1, Number(process.env.GMAIL_DAILY_LIMIT || 400)),
+    sendIntervalMs: Math.max(0, Number(process.env.GMAIL_SEND_INTERVAL_MS || 4000)),
+    maxRecipients: Math.max(1, Number(process.env.CAMPAIGN_MAX_RECIPIENTS || 2000)),
+    publicUrl: (process.env.PUBLIC_API_URL || `http://localhost:${process.env.PORT || 5000}`).replace(/\/$/, ''),
+  },
 
   maxConcurrentJobs: Number(process.env.MAX_CONCURRENT_JOBS || 2),
   crawlConcurrency: Number(process.env.CRAWL_CONCURRENCY || 5),
   crawlTimeoutMs: Number(process.env.CRAWL_TIMEOUT_MS || 10000),
   dailySearchLimit: Number(process.env.DAILY_SEARCH_LIMIT || 25),
 };
+
+if (env.nodeEnv === 'production' && env.googleClientSecret && !env.mail.tokenKey) {
+  throw new Error('TOKEN_ENCRYPTION_KEY must be set in production when Gmail sending is enabled');
+}
 
 if (env.nodeEnv === 'production' && env.jwtSecret === 'change-me-in-production') {
   throw new Error('JWT_SECRET must be set in production');

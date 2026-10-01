@@ -3,13 +3,21 @@ import { EmailTypeBadge } from './StatusBadge.jsx';
 
 const short = (u) => u?.replace(/^https?:\/\/(www\.)?/, '').replace(/\/$/, '');
 
-export default function LeadsTable({ leads, showRank = true }) {
+export default function LeadsTable({ leads, showRank = true, selected, onToggle, onToggleAll }) {
+  const selectable = Boolean(selected);
+  const withEmail = leads.filter((l) => l.primaryEmail);
+  const allOn = selectable && withEmail.length > 0 && withEmail.every((l) => selected.has(l._id));
   if (!leads.length) return <div className="py-10 text-center text-sm text-slate-500">No leads yet.</div>;
   return (
     <div className="overflow-x-auto">
       <table className="min-w-full divide-y divide-slate-200">
         <thead className="bg-slate-50">
           <tr>
+            {selectable && (
+              <th className="th w-8">
+                <input type="checkbox" aria-label="Select all on page" checked={allOn} disabled={!withEmail.length} onChange={() => onToggleAll(withEmail, !allOn)} />
+              </th>
+            )}
             {showRank && <th className="th">#</th>}
             <th className="th">Business</th>
             <th className="th">Email</th>
@@ -22,6 +30,18 @@ export default function LeadsTable({ leads, showRank = true }) {
         <tbody className="divide-y divide-slate-100">
           {leads.map((l) => (
             <tr key={l._id} className="hover:bg-slate-50">
+              {selectable && (
+                <td className="td">
+                  <input
+                    type="checkbox"
+                    aria-label={`Select ${l.name}`}
+                    disabled={!l.primaryEmail}
+                    title={l.primaryEmail ? '' : 'No email: cannot be emailed'}
+                    checked={selected.has(l._id)}
+                    onChange={() => onToggle(l._id)}
+                  />
+                </td>
+              )}
               {showRank && <td className="td text-slate-400">{l.rank}</td>}
               <td className="td max-w-xs">
                 <div className="font-medium text-slate-900">

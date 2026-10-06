@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { api, errMsg } from '../lib/api.js';
 
-export default function SaveToGroup({ payload, label = 'Save to group', disabled, defaultName = '' }) {
+export default function SaveToGroup({ payload, label = 'Save to group', disabled, defaultName = '', className }) {
   const [open, setOpen] = useState(false);
   const [groups, setGroups] = useState([]);
   const [groupId, setGroupId] = useState('new');
@@ -42,7 +42,7 @@ export default function SaveToGroup({ payload, label = 'Save to group', disabled
 
   return (
     <>
-      <button type="button" className="btn-primary px-3 py-1.5" disabled={disabled} onClick={() => setOpen(true)}>
+      <button type="button" className={className || "btn-primary px-3 py-1.5"} disabled={disabled} onClick={() => setOpen(true)}>
         {label}
       </button>
       {open && (

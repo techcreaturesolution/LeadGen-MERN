@@ -99,7 +99,7 @@ export default function Campaigns() {
             </select>
             {!groups.length && (
               <span className="text-xs text-slate-500">
-                No groups yet. <Link to="/groups" className="text-blue-700">Create one</Link>.
+                No groups yet. <Link to="/groups" className="text-[#008762]">Create one</Link>.
               </span>
             )}
           </label>
@@ -115,7 +115,7 @@ export default function Campaigns() {
             </select>
             {!templates.length && (
               <span className="text-xs text-slate-500">
-                No templates yet. <Link to="/templates" className="text-blue-700">Create one</Link>.
+                No templates yet. <Link to="/templates" className="text-[#008762]">Create one</Link>.
               </span>
             )}
           </label>
@@ -149,11 +149,29 @@ export default function Campaigns() {
         {error && <div className="rounded-lg bg-red-50 p-3 text-sm text-red-700">{error}</div>}
         {notice && <div className="rounded-lg bg-green-50 p-3 text-sm text-green-800">{notice}</div>}
         <div className="flex flex-wrap gap-2">
-          <button type="button" className="btn-primary" disabled={!group || !template || !group.memberCount || busy === 'start'} onClick={start}>
+          <button 
+            type="button" 
+            className="btn-primary" 
+            disabled={busy === 'start'} 
+            onClick={() => {
+              if (!group) return setError('Please select a Lead group first.');
+              if (!template) return setError('Please select a Template first.');
+              if (!group.memberCount) return setError('The selected group has 0 contacts. Add some leads to the group first.');
+              start();
+            }}
+          >
             {busy === 'start' ? 'Starting…' : mode === 'gmail' ? `Send to ${group?.memberCount || 0} contacts` : 'Start test run'}
           </button>
           {canGmail && (
-            <button type="button" className="btn-secondary" disabled={!template || busy === 'test'} onClick={testToSelf}>
+            <button 
+              type="button" 
+              className="btn-secondary" 
+              disabled={busy === 'test'} 
+              onClick={() => {
+                if (!template) return setError('Please select a Template to send a test email.');
+                testToSelf();
+              }}
+            >
               {busy === 'test' ? 'Sending…' : 'Send a test to myself'}
             </button>
           )}
@@ -181,7 +199,7 @@ export default function Campaigns() {
                 <tr key={c._id} className="hover:bg-slate-50">
                   <td className="td whitespace-nowrap text-xs">{fmtDate(c.createdAt)}</td>
                   <td className="td">
-                    <Link to={`/campaigns/${c._id}`} className="font-medium text-blue-700 hover:underline">
+                    <Link to={`/campaigns/${c._id}`} className="font-medium text-[#008762] hover:underline">
                       {c.name}
                     </Link>
                   </td>

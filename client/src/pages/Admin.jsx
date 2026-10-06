@@ -200,9 +200,10 @@ export default function Admin() {
             ['Ad clicks', stats.clicks],
             ['Video ad views', stats.videoViews],
           ].map(([l, v]) => (
-            <div key={l} className="card">
-              <div className="text-xs text-slate-500">{l}</div>
-              <div className="text-xl font-bold">{v}</div>
+            <div key={l} className="rounded-xl bg-gradient-to-br from-[#008762] to-[#006e50] p-4 shadow-sm text-white relative overflow-hidden">
+              <div className="absolute -right-3 -top-3 h-16 w-16 rounded-full bg-white opacity-10 blur-xl"></div>
+              <div className="text-[10px] font-bold text-emerald-100 uppercase tracking-widest relative z-10">{l}</div>
+              <div className="mt-1 text-2xl font-black tracking-tight relative z-10 drop-shadow-sm">{v}</div>
             </div>
           ))}
         </div>
@@ -214,7 +215,7 @@ export default function Admin() {
             key={t}
             type="button"
             onClick={() => setTab(t)}
-            className={`-mb-px whitespace-nowrap border-b-2 px-4 py-2 text-sm font-medium ${tab === t ? 'border-blue-700 text-blue-700' : 'border-transparent text-slate-500'}`}
+            className={`-mb-px whitespace-nowrap border-b-2 px-4 py-2 text-sm font-medium transition-colors ${tab === t ? 'border-[#008762] text-[#008762]' : 'border-transparent text-slate-500 hover:text-[#008762]'}`}
           >
             {label}
           </button>
@@ -263,7 +264,7 @@ export default function Admin() {
                       <div className="font-medium">{a.title}</div>
                       <div className="text-xs text-slate-500">
                         {a.advertiser} ·{' '}
-                        <a href={a.targetUrl} target="_blank" rel="noreferrer" className="text-blue-700">
+                        <a href={a.targetUrl} target="_blank" rel="noreferrer" className="text-[#008762] hover:underline">
                           {a.targetUrl}
                         </a>
                       </div>
@@ -282,7 +283,7 @@ export default function Admin() {
                       <span className={`badge ${a.active ? 'bg-green-100 text-green-700' : 'bg-slate-100 text-slate-500'}`}>{a.active ? 'active' : 'paused'}</span>
                     </td>
                     <td className="td whitespace-nowrap text-right text-xs">
-                      <button type="button" className="mr-3 text-blue-700" onClick={() => setEditing({ ...EMPTY, ...a })}>
+                      <button type="button" className="mr-3 text-[#008762] hover:underline font-medium" onClick={() => setEditing({ ...EMPTY, ...a })}>
                         Edit
                       </button>
                       <button type="button" className="text-red-600" onClick={() => removeAd(a._id)}>

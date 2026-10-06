@@ -88,13 +88,13 @@ export default function Templates() {
           <div className="card space-y-2 p-3">
             <div className="flex items-center justify-between">
               <span className="text-sm font-semibold">My templates</span>
-              <button type="button" className="text-xs text-blue-700" onClick={() => setForm(EMPTY)}>
+              <button type="button" className="text-xs text-[#008762]" onClick={() => setForm(EMPTY)}>
                 + New
               </button>
             </div>
             {!items.length && <div className="text-xs text-slate-500">No templates yet. Start from a ready-made one below.</div>}
             {items.map((t) => (
-              <div key={t._id} className={`flex items-center justify-between rounded-lg px-2 py-1.5 text-sm ${form._id === t._id ? 'bg-blue-50' : 'hover:bg-slate-50'}`}>
+              <div key={t._id} className={`flex items-center justify-between rounded-lg px-2 py-1.5 text-sm ${form._id === t._id ? 'bg-[#008762]/10' : 'hover:bg-slate-50'}`}>
                 <button type="button" className="min-w-0 truncate text-left" onClick={() => setForm(t)}>
                   {t.name}
                 </button>

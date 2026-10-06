@@ -28,7 +28,7 @@ export async function sendTableFile(res, { title, sheet, columns, rows, format =
     const ws = wb.addWorksheet(sheet, { views: [{ state: 'frozen', ySplit: 1 }] });
     ws.columns = columns;
     ws.getRow(1).font = { bold: true, color: { argb: 'FFFFFFFF' } };
-    ws.getRow(1).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF1E40AF' } };
+    ws.getRow(1).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF008762' } };
     ws.addRows(rows);
     ws.autoFilter = { from: 'A1', to: { row: 1, column: columns.length } };
     body = await wb.xlsx.writeBuffer();

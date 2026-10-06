@@ -9,7 +9,7 @@ const memberSchema = new mongoose.Schema(
     website: String,
     phone: String,
     category: String,
-    origin: { type: String, enum: ['search', 'leads', 'excel'] },
+    origin: { type: String, enum: ['search', 'leads', 'excel', 'manual'] },
     addedAt: { type: Date, default: Date.now },
     emailsSent: { type: Number, default: 0 },
     lastEmailedAt: Date,

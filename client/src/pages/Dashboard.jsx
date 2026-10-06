@@ -9,9 +9,10 @@ import { useAuth } from '../lib/auth.jsx';
 
 function Stat({ label, value }) {
   return (
-    <div className="card">
-      <div className="text-sm text-slate-500">{label}</div>
-      <div className="mt-1 text-2xl font-bold text-slate-900">{value ?? '—'}</div>
+    <div className="rounded-xl bg-gradient-to-br from-[#008762] to-[#006e50] p-5 shadow-md text-white relative overflow-hidden">
+      <div className="absolute -right-4 -top-4 h-20 w-20 rounded-full bg-white opacity-10 blur-xl"></div>
+      <div className="text-[11px] font-bold text-emerald-100 uppercase tracking-widest relative z-10">{label}</div>
+      <div className="mt-1.5 text-3xl font-black tracking-tight relative z-10 drop-shadow-sm">{value ?? '—'}</div>
     </div>
   );
 }
@@ -47,7 +48,7 @@ export default function Dashboard() {
           <div className="card">
             <div className="mb-3 flex items-center justify-between">
               <h2 className="font-semibold">Recent searches</h2>
-              <Link to="/searches" className="text-sm text-blue-700">
+              <Link to="/searches" className="text-sm font-semibold text-[#008762] hover:text-[#006e50]">
                 View all
               </Link>
             </div>

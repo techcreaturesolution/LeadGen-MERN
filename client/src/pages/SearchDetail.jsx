@@ -66,7 +66,7 @@ export default function SearchDetail() {
     <div className="space-y-5">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <Link to="/searches" className="text-sm text-blue-700">
+          <Link to="/searches" className="text-sm text-[#008762]">
             ← Searches
           </Link>
           <h1 className="mt-1 text-2xl font-bold text-slate-900">{job.query}</h1>
@@ -97,7 +97,7 @@ export default function SearchDetail() {
             </span>
           </div>
           <div className="h-2 rounded bg-slate-200">
-            <div className={`h-2 rounded transition-all ${job.status === 'failed' ? 'bg-red-500' : 'bg-blue-600'}`} style={{ width: `${pct}%` }} />
+            <div className={`h-2 rounded transition-all ${job.status === 'failed' ? 'bg-red-500' : 'bg-[#008762]'}`} style={{ width: `${pct}%` }} />
           </div>
           {job.error && <div className="text-sm text-red-700">{job.error}</div>}
         </div>
@@ -150,7 +150,7 @@ export default function SearchDetail() {
         </div>
       )}
 
-      {job.summary && <div className="rounded-lg border border-blue-100 bg-blue-50 p-4 text-sm text-blue-900"><b>AI summary:</b> {job.summary}</div>}
+      {job.summary && <div className="rounded-lg border border-blue-100 bg-[#008762]/10 p-4 text-sm text-[#006e50]"><b>AI summary:</b> {job.summary}</div>}
 
       <AdSlot placement="dashboard_banner" />
 

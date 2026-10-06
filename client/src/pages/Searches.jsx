@@ -57,7 +57,7 @@ export default function Searches() {
             {data.items.map((j) => (
               <tr key={j._id} className="hover:bg-slate-50">
                 <td className="td">
-                  <Link to={`/searches/${j._id}`} className="font-medium text-blue-700 hover:underline">
+                  <Link to={`/searches/${j._id}`} className="font-medium text-[#008762] hover:underline">
                     {j.query}
                   </Link>
                 </td>

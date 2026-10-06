@@ -54,7 +54,7 @@ export default function AdminClient() {
     <div className="space-y-5">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <Link to="/admin?tab=clients" className="text-sm text-blue-700">
+          <Link to="/admin?tab=clients" className="text-sm text-[#008762]">
             ← Clients
           </Link>
           <h1 className="mt-1 text-2xl font-bold">{c.name || c.email}</h1>
@@ -105,7 +105,7 @@ export default function AdminClient() {
             key={k}
             type="button"
             onClick={() => setTab(k)}
-            className={`-mb-px whitespace-nowrap border-b-2 px-4 py-2 text-sm font-medium ${tab === k ? 'border-blue-700 text-blue-700' : 'border-transparent text-slate-500'}`}
+            className={`-mb-px whitespace-nowrap border-b-2 px-4 py-2 text-sm font-medium ${tab === k ? 'border-[#008762] text-[#008762]' : 'border-transparent text-slate-500'}`}
           >
             {label}
           </button>

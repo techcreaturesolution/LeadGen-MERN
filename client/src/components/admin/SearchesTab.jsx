@@ -77,7 +77,7 @@ export default function SearchesTab() {
                 <td className="td font-medium">{j.query}</td>
                 <td className="td text-xs">
                   {j.owner ? (
-                    <Link to={`/admin/clients/${j.owner._id}`} className="text-blue-700">
+                    <Link to={`/admin/clients/${j.owner._id}`} className="text-[#008762]">
                       {j.owner.email}
                     </Link>
                   ) : (

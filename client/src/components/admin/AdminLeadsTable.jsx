@@ -106,7 +106,7 @@ export default function AdminLeadsTable({ owner, showOwner = true }) {
                 <td className="td text-xs">
                   <div>{l.phone || '—'}</div>
                   {l.website && (
-                    <a href={l.website} target="_blank" rel="noreferrer" className="text-blue-700">
+                    <a href={l.website} target="_blank" rel="noreferrer" className="text-[#008762]">
                       {short(l.website)}
                     </a>
                   )}
@@ -114,7 +114,7 @@ export default function AdminLeadsTable({ owner, showOwner = true }) {
                 {showOwner && (
                   <td className="td text-xs">
                     {l.owner ? (
-                      <Link to={`/admin/clients/${l.owner._id}`} className="text-blue-700">
+                      <Link to={`/admin/clients/${l.owner._id}`} className="text-[#008762]">
                         {l.owner.email}
                       </Link>
                     ) : (

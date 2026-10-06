@@ -81,7 +81,7 @@ export function leadRows(leads) {
 
 function styleHeader(row) {
   row.font = { bold: true, color: { argb: 'FFFFFFFF' } };
-  row.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF1E40AF' } };
+  row.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF008762' } };
   row.alignment = { vertical: 'middle' };
   row.height = 20;
 }
@@ -91,58 +91,6 @@ export async function buildLeadsWorkbook({ title, leads: input, count, jobs = []
   const wb = new ExcelJS.Workbook();
   wb.creator = 'LeadGen AI';
   wb.created = new Date();
-
-  const summary = wb.addWorksheet('Summary');
-  summary.columns = [
-    { header: 'Metric', key: 'metric', width: 34 },
-    { header: 'Value', key: 'value', width: 60 },
-  ];
-  styleHeader(summary.getRow(1));
-  const withEmail = leads.filter((l) => l.primaryEmail).length;
-  const byType = {};
-  const bySource = {};
-  for (const l of leads) {
-    byType[l.primaryEmailCategory || 'none'] = (byType[l.primaryEmailCategory || 'none'] || 0) + 1;
-    for (const s of l.sources || []) bySource[s] = (bySource[s] || 0) + 1;
-  }
-  summary.addRows([
-    { metric: 'Report', value: title },
-    { metric: 'Generated at', value: new Date().toLocaleString('en-IN') },
-    { metric: 'Requested count', value: count === 'all' ? 'All' : Number(count) },
-    { metric: 'Leads in report', value: leads.length },
-    { metric: 'Leads with email', value: withEmail },
-    { metric: 'Leads without email', value: leads.length - withEmail },
-    ...Object.entries(byType).map(([k, v]) => ({ metric: `Email type: ${k.toUpperCase()}`, value: v })),
-    ...Object.entries(bySource).map(([k, v]) => ({ metric: `Source: ${SOURCE_LABEL[k] || k}`, value: v })),
-  ]);
-  for (const b of [20, 40, 60]) {
-    const slice = leads.slice(0, b);
-    summary.addRow({ metric: `Top ${b}: leads / with email`, value: `${slice.length} / ${slice.filter((l) => l.primaryEmail).length}` });
-  }
-  const verifiedCount = leads.filter((l) => l.verification === 'verified').length;
-  if (leads.some((l) => l.verification)) summary.addRow({ metric: 'Verified matches', value: `${verifiedCount} / ${leads.length}` });
-  summary.addRow({ metric: 'Leads with company type', value: leads.filter((l) => l.companyType).length });
-  summary.addRow({ metric: 'Leads with key contacts', value: leads.filter((l) => l.contacts?.length).length });
-  summary.addRow({ metric: 'Duplicate rows in report', value: 0 });
-  if (jobs.length) {
-    summary.addRow({});
-    jobs.forEach((j) => {
-      summary.addRow({ metric: `Search: ${j.query}`, value: j.summary || j.status });
-      if (j.plan?.locations?.length) summary.addRow({ metric: 'Locations searched', value: j.plan.locations.join(', ') });
-      const q = j.quality;
-      if (q?.rawResults != null) {
-        summary.addRows([
-          { metric: 'Raw results collected', value: q.rawResults },
-          { metric: 'Duplicates merged', value: q.duplicatesRemoved },
-          { metric: 'Off-target businesses removed', value: q.rejected },
-          { metric: 'Invalid / shared emails removed', value: q.emailsRemoved },
-          { metric: 'AI verification agent', value: q.aiChecked ? 'On' : 'Off (rule-based checks only)' },
-          ...(q.enrichedCompanies ? [{ metric: 'Companies enriched (Apollo.io)', value: q.enrichedCompanies }] : []),
-          ...(q.enrichedContacts ? [{ metric: 'Contact lookups with results (Hunter.io / Apollo.io)', value: q.enrichedContacts }] : []),
-        ]);
-      }
-    });
-  }
 
   const sheet = wb.addWorksheet('Leads', { views: [{ state: 'frozen', ySplit: 1 }] });
   sheet.columns = COLUMNS;

@@ -56,7 +56,7 @@ export default function CampaignDetail() {
     <div className="space-y-5">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <Link to="/campaigns" className="text-sm text-blue-700">
+          <Link to="/campaigns" className="text-sm text-[#008762]">
             ← Campaigns
           </Link>
           <h1 className="mt-1 text-2xl font-bold">{c.name}</h1>
@@ -64,7 +64,7 @@ export default function CampaignDetail() {
             <StatusBadge status={c.status} />
             <span>{c.mode === 'gmail' ? `Sending from ${c.from.email} via Gmail` : 'Test run: nothing is actually emailed'}</span>
             <span>
-              · group <Link to={`/groups/${c.group}`} className="text-blue-700">{c.groupName}</Link> · template {c.templateName}
+              · group <Link to={`/groups/${c.group}`} className="text-[#008762]">{c.groupName}</Link> · template {c.templateName}
             </span>
           </div>
         </div>
@@ -100,7 +100,7 @@ export default function CampaignDetail() {
           </span>
         </div>
         <div className="h-2 rounded bg-slate-200">
-          <div className="h-2 rounded bg-blue-600 transition-all" style={{ width: `${pct}%` }} />
+          <div className="h-2 rounded bg-[#008762] transition-all" style={{ width: `${pct}%` }} />
         </div>
         {active && <div className="text-xs text-slate-500">Emails go out one by one in the background. You can leave this page; sending continues.</div>}
       </div>

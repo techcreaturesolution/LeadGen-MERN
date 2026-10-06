@@ -110,6 +110,21 @@ router.post('/:id/import', express.raw({ type: () => true, limit: '10mb' }), asy
   res.json({ sheet: parsed.sheet, rows: parsed.rows.length, ...(await addMembers(group, parsed.rows, { type: 'excel', label: fileName })) });
 });
 
+const manualSchema = z.object({
+  email: z.string().email(),
+  business: z.string().trim().optional(),
+  city: z.string().trim().optional(),
+  phone: z.string().trim().optional(),
+  website: z.string().trim().optional(),
+});
+
+router.post('/:id/members/manual', async (req, res) => {
+  const group = await ownGroup(req);
+  const body = manualSchema.parse(req.body);
+  const member = { ...body, origin: 'manual', createdAt: new Date() };
+  res.json(await addMembers(group, [member], { type: 'manual', label: 'Manual Entry' }));
+});
+
 router.delete('/:id/members/:memberId', async (req, res) => {
   const group = await ownGroup(req);
   group.members.pull({ _id: req.params.memberId });

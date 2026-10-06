@@ -33,6 +33,10 @@ export async function buildFilter(user, q) {
     const rx = new RegExp(String(q.search).replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i');
     filter.$or = [{ name: rx }, { primaryEmail: rx }, { website: rx }, { city: rx }, { category: rx }];
   }
+  if (q.ids) {
+    const idArray = String(q.ids).split(',').map((s) => s.trim()).filter(Boolean);
+    if (idArray.length) filter._id = { $in: idArray };
+  }
   return filter;
 }
 

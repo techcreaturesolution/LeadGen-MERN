@@ -15,6 +15,9 @@ export default function GroupDetail() {
   const [notice, setNotice] = useState('');
   const [error, setError] = useState('');
   const [uploading, setUploading] = useState(false);
+  const [addModal, setAddModal] = useState(false);
+  const [manualForm, setManualForm] = useState({ email: '', business: '', city: '', phone: '', website: '' });
+  const [manualBusy, setManualBusy] = useState(false);
 
   const [version, setVersion] = useState(0);
   const load = useCallback(() => setVersion((n) => n + 1), []);
@@ -53,6 +56,29 @@ export default function GroupDetail() {
     }
   };
 
+  const addManualContact = async () => {
+    setManualBusy(true);
+    setError('');
+    setNotice('');
+    try {
+      const { data } = await api.post(`/groups/${id}/members/manual`, manualForm);
+      if (data.duplicates) {
+        setNotice('Contact already exists in this group.');
+        setAddModal(false);
+      } else if (data.withoutEmail) {
+        setError('Invalid email address.');
+      } else {
+        setNotice('Contact added successfully.');
+        setAddModal(false);
+        setManualForm({ email: '', business: '', city: '', phone: '', website: '' });
+        load();
+      }
+    } catch (err) {
+      setError(errMsg(err));
+    } finally {
+      setManualBusy(false);
+    }
+  };
   const remove = async (m) => {
     await api.delete(`/groups/${id}/members/${m._id}`).catch((e) => setError(errMsg(e)));
     load();
@@ -77,13 +103,16 @@ export default function GroupDetail() {
     <div className="space-y-5">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <Link to="/groups" className="text-sm text-blue-700">
+          <Link to="/groups" className="text-sm text-[#008762]">
             ← Lead groups
           </Link>
           <h1 className="mt-1 text-2xl font-bold">{group.name}</h1>
           {group.description && <p className="text-sm text-slate-500">{group.description}</p>}
         </div>
         <div className="flex flex-wrap gap-2">
+          <button type="button" className="btn-secondary" onClick={() => setAddModal(true)}>
+            Add Contact
+          </button>
           <label className={`btn-secondary cursor-pointer ${uploading ? 'opacity-50' : ''}`}>
             {uploading ? 'Importing…' : 'Upload Excel'}
             <input type="file" accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" className="hidden" onChange={upload} disabled={uploading} />
@@ -125,7 +154,7 @@ export default function GroupDetail() {
             key={k}
             type="button"
             onClick={() => setTab(k)}
-            className={`-mb-px border-b-2 px-3 py-2 text-sm font-medium ${tab === k ? 'border-blue-700 text-blue-700' : 'border-transparent text-slate-500'}`}
+            className={`-mb-px border-b-2 px-3 py-2 text-sm font-medium ${tab === k ? 'border-[#008762] text-[#008762]' : 'border-transparent text-slate-500'}`}
           >
             {label}
           </button>
@@ -211,7 +240,7 @@ export default function GroupDetail() {
                   <tr key={c._id} className="hover:bg-slate-50">
                     <td className="td whitespace-nowrap text-xs">{fmtDate(c.createdAt)}</td>
                     <td className="td">
-                      <Link to={`/campaigns/${c._id}`} className="font-medium text-blue-700 hover:underline">
+                      <Link to={`/campaigns/${c._id}`} className="font-medium text-[#008762] hover:underline">
                         {c.name}
                       </Link>
                       <div className="text-xs text-slate-500">from {c.from?.email}</div>
@@ -232,6 +261,42 @@ export default function GroupDetail() {
               </tbody>
             </table>
           )}
+        </div>
+      )}
+
+      {addModal && (
+        <div className="fixed inset-0 z-40 flex items-center justify-center bg-slate-900/50 p-4" role="dialog">
+          <div className="card w-full max-w-md space-y-4">
+            <h2 className="text-lg font-semibold">Add Contact Manually</h2>
+            <div className="space-y-3">
+              <label className="block text-sm">
+                <span className="mb-1 block font-medium text-slate-700">Email *</span>
+                <input type="email" className="input" placeholder="name@company.com" value={manualForm.email} onChange={(e) => setManualForm({ ...manualForm, email: e.target.value })} />
+              </label>
+              <label className="block text-sm">
+                <span className="mb-1 block font-medium text-slate-700">Business Name</span>
+                <input type="text" className="input" placeholder="e.g. Acme Corp" value={manualForm.business} onChange={(e) => setManualForm({ ...manualForm, business: e.target.value })} />
+              </label>
+              <label className="block text-sm">
+                <span className="mb-1 block font-medium text-slate-700">City</span>
+                <input type="text" className="input" placeholder="e.g. New York" value={manualForm.city} onChange={(e) => setManualForm({ ...manualForm, city: e.target.value })} />
+              </label>
+              <label className="block text-sm">
+                <span className="mb-1 block font-medium text-slate-700">Phone</span>
+                <input type="text" className="input" placeholder="+1 234 567 8900" value={manualForm.phone} onChange={(e) => setManualForm({ ...manualForm, phone: e.target.value })} />
+              </label>
+              <label className="block text-sm">
+                <span className="mb-1 block font-medium text-slate-700">Website</span>
+                <input type="text" className="input" placeholder="https://..." value={manualForm.website} onChange={(e) => setManualForm({ ...manualForm, website: e.target.value })} />
+              </label>
+            </div>
+            <div className="flex justify-end gap-2 pt-2">
+              <button type="button" className="btn-secondary" onClick={() => setAddModal(false)}>Cancel</button>
+              <button type="button" className="btn-primary" disabled={!manualForm.email || manualBusy} onClick={addManualContact}>
+                {manualBusy ? 'Adding...' : 'Add Contact'}
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>

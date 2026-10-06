@@ -65,7 +65,7 @@ export default function Groups() {
               {items.map((g) => (
                 <tr key={g._id} className="hover:bg-slate-50">
                   <td className="td">
-                    <Link to={`/groups/${g._id}`} className="font-medium text-blue-700 hover:underline">
+                    <Link to={`/groups/${g._id}`} className="font-medium text-[#008762] hover:underline">
                       {g.name}
                     </Link>
                     {g.description && <div className="text-xs text-slate-500">{g.description}</div>}

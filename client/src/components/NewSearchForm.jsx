@@ -91,7 +91,7 @@ export default function NewSearchForm() {
         </div>
       </div>
       {plan && (
-        <div className="rounded-lg bg-blue-50 p-3 text-sm text-blue-900">
+        <div className="rounded-lg bg-[#008762]/10 p-3 text-sm text-[#006e50]">
           <span className="font-semibold">Agent plan:</span> find <b>{plan.businessType}</b>
           {plan.location && (
             <>
@@ -111,7 +111,7 @@ export default function NewSearchForm() {
               return (
                 <label
                   key={k}
-                  className={`flex cursor-pointer items-center gap-2 rounded-lg border px-3 py-2 text-sm ${sources.includes(k) ? 'border-blue-600 bg-blue-50' : 'border-slate-300'} ${off ? 'opacity-50' : ''}`}
+                  className={`flex cursor-pointer items-center gap-2 rounded-lg border px-3 py-2 text-sm ${sources.includes(k) ? 'border-[#008762] bg-[#008762]/10' : 'border-slate-300'} ${off ? 'opacity-50' : ''}`}
                   title={off ? 'Needs SERPAPI_KEY or GOOGLE_CSE_KEY on the server' : ''}
                 >
                   <input type="checkbox" checked={sources.includes(k)} onChange={() => toggle(k)} />
@@ -141,7 +141,7 @@ export default function NewSearchForm() {
                 key={n}
                 type="button"
                 onClick={() => setTargetCount(n)}
-                className={`flex-1 rounded-lg border px-4 py-2 text-sm font-semibold ${targetCount === n ? 'border-blue-600 bg-blue-600 text-white' : 'border-slate-300 bg-white text-slate-700'}`}
+                className={`flex-1 rounded-lg border px-4 py-2 text-sm font-semibold ${targetCount === n ? 'border-[#008762] bg-[#008762] text-white' : 'border-slate-300 bg-white text-slate-700'}`}
               >
                 {n}
               </button>

@@ -97,7 +97,7 @@ export default function ClientsTab() {
             {data.items.map((u) => (
               <tr key={u._id} className="hover:bg-slate-50">
                 <td className="td">
-                  <Link to={`/admin/clients/${u._id}`} className="font-medium text-blue-700 hover:underline">
+                  <Link to={`/admin/clients/${u._id}`} className="font-medium text-[#008762] hover:underline">
                     {u.name || u.email}
                   </Link>
                   <div className="text-xs text-slate-500">{u.email}</div>
@@ -120,10 +120,10 @@ export default function ClientsTab() {
                 </td>
                 <td className="td whitespace-nowrap text-xs">{fmtDate(u.lastLoginAt)}</td>
                 <td className="td whitespace-nowrap text-right text-xs">
-                  <Link to={`/admin/clients/${u._id}`} className="mr-3 text-blue-700">
+                  <Link to={`/admin/clients/${u._id}`} className="mr-3 font-medium text-[#008762] hover:underline">
                     View data
                   </Link>
-                  <button type="button" className="mr-3 text-blue-700" onClick={() => act(u._id, { role: u.role === 'admin' ? 'user' : 'admin' })}>
+                  <button type="button" className="mr-3 font-medium text-[#008762] hover:underline" onClick={() => act(u._id, { role: u.role === 'admin' ? 'user' : 'admin' })}>
                     Make {u.role === 'admin' ? 'user' : 'admin'}
                   </button>
                   <button type="button" className={u.active ? 'text-red-600' : 'text-green-700'} onClick={() => act(u._id, { active: !u.active })}>

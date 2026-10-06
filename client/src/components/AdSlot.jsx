@@ -16,7 +16,7 @@ function BannerAd({ ad }) {
           <div className="text-base font-semibold text-slate-900">{ad.title}</div>
           {ad.description && <div className="text-sm text-slate-600">{ad.description}</div>}
         </div>
-        <span className="btn-primary shrink-0 group-hover:bg-blue-800">{ad.ctaText || 'Learn more'}</span>
+        <span className="btn-primary shrink-0 group-hover:bg-[#006e50]">{ad.ctaText || 'Learn more'}</span>
       </div>
     </button>
   );
@@ -30,7 +30,7 @@ function CardAd({ ad }) {
         <div className="text-[10px] font-semibold uppercase tracking-wider text-amber-600">Sponsored</div>
         <div className="text-sm font-semibold text-slate-900">{ad.title}</div>
         {ad.description && <div className="mt-0.5 text-xs text-slate-600">{ad.description}</div>}
-        <div className="mt-2 text-xs font-medium text-blue-700">
+        <div className="mt-2 text-xs font-medium text-[#008762]">
           {ad.ctaText || 'Learn more'} → <span className="text-slate-400">{ad.advertiser}</span>
         </div>
       </div>

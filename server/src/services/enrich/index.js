@@ -4,6 +4,7 @@ import { domainOf, isCompanyWebsite, normalizeUrl, websiteMatchesName } from '..
 import { categorizeEmail } from '../emails.js';
 import { apolloEnabled, apolloOrganization, apolloPeople, fromApolloOrg } from './apollo.js';
 import { fromHunter, hunterDomainSearch, hunterEnabled } from './hunter.js';
+import { apifyEnabled, apifyOrganization, apifyPeople, fromApifyOrg, apifyContactDetails } from './apify.js';
 
 const STOP_STATUSES = [401, 402, 403, 429];
 const RANK = { verified: 0, likely: 1 };
@@ -11,7 +12,7 @@ const byQuality = (a, b) => (RANK[a.verification] ?? 2) - (RANK[b.verification] 
 const norm = (s) => String(s || '').toLowerCase().replace(/[^a-z]/g, '');
 
 export function enrichmentProviders() {
-  return [apolloEnabled() && 'apollo', hunterEnabled() && 'hunter'].filter(Boolean);
+  return [apolloEnabled() && 'apollo', hunterEnabled() && 'hunter', apifyEnabled() && 'apify'].filter(Boolean);
 }
 
 const errorText = (err) => {
@@ -76,18 +77,24 @@ export function sameCompany(lead, company) {
   return !city || !company.city || norm(company.city) === norm(city);
 }
 
-export async function enrichCompanies(leads, log, { organization = apolloEnabled() ? apolloOrganization : null, max = env.enrichment.maxCompanies } = {}) {
+export async function enrichCompanies(leads, log, { organization = apolloEnabled() ? apolloOrganization : (apifyEnabled() ? apifyOrganization : null), max = env.enrichment.maxCompanies } = {}) {
   if (!organization || !max) return 0;
-  const call = guarded('Apollo.io company enrichment', log);
+  const isApify = !apolloEnabled() && apifyEnabled();
+  const providerName = isApify ? 'Apify' : 'Apollo.io';
+  const call = guarded(`${providerName} company enrichment`, log);
   const todo = leads.filter((l) => l.verification !== 'rejected' && (!l.website || !l.companyType)).sort(byQuality).slice(0, max);
   const limit = pLimit(3);
   let done = 0;
   await Promise.all(
     todo.map((l) =>
       limit(async () => {
-        const company = fromApolloOrg(await call(() => organization(l.domain ? { domain: l.domain } : { name: l.name })));
+        const rawCompany = await call(() => organization(l.domain ? { domain: l.domain } : { name: l.name }));
+        const company = isApify ? fromApifyOrg(rawCompany) : fromApolloOrg(rawCompany);
         if (!company || (!l.domain && !sameCompany(l, company))) return;
-        if (applyCompany(l, company)) done += 1;
+        if (applyCompany(l, company)) {
+          if (isApify) addEnricher(l, 'apify');
+          done += 1;
+        }
       }),
     ),
   );
@@ -102,15 +109,17 @@ export async function enrichContacts(
   log,
   {
     domainSearch = hunterEnabled() ? hunterDomainSearch : null,
-    people = apolloEnabled() ? apolloPeople : null,
+    people = apolloEnabled() ? apolloPeople : (apifyEnabled() ? apifyPeople : null),
     max = env.enrichment.maxDomainSearches,
     perCompany = env.enrichment.contactsPerCompany,
   } = {},
 ) {
-  const stats = { hunter: 0, apollo: 0 };
-  if ((!domainSearch && !people) || !max) return stats;
+  const stats = { hunter: 0, apollo: 0, apify: 0 };
+  const hasApify = apifyEnabled();
+  if ((!domainSearch && !people && !hasApify) || !max) return stats;
   const hunterCall = guarded('Hunter.io domain search', log);
-  const apolloCall = guarded('Apollo.io people search', log);
+  const peopleCall = guarded(apolloEnabled() ? 'Apollo.io people search' : 'Apify HR search', log);
+  const apifyContactCall = guarded('Apify Contact Details search', log);
   const todo = leads.filter((l) => l.domain).sort(byQuality).slice(0, max);
   const limit = pLimit(3);
   await Promise.all(
@@ -125,12 +134,27 @@ export async function enrichContacts(
             stats.hunter += 1;
           }
         }
+        
+        // Apify Fallback/Addition for Emails if Hunter is missing or didn't find enough
+        if (hasApify && (!domainSearch || !hasRoleEmail(l, plan.targetRole))) {
+             const apifyData = await apifyContactCall(() => apifyContactDetails(l.website));
+             if (apifyData && apifyData.emails.length) {
+                 l.rawEmails = [...(l.rawEmails || []), ...apifyData.emails.map(e => ({ email: e.value || e, foundOn: 'apify' }))];
+                 addEnricher(l, 'apify');
+             }
+        }
+
         if (people && (l.contacts?.length || 0) < perCompany) {
-          const found = await apolloCall(() => people(l.domain, plan.targetRole, perCompany));
+          const found = await peopleCall(() => people(l.domain, plan.targetRole, perCompany));
           if (found?.length) {
             l.contacts = mergeContacts(l.contacts, found, perCompany);
-            addEnricher(l, 'apollo');
-            stats.apollo += 1;
+            if (apolloEnabled()) {
+                addEnricher(l, 'apollo');
+                stats.apollo += 1;
+            } else {
+                addEnricher(l, 'apify');
+                stats.apify += 1;
+            }
           }
         }
       }),

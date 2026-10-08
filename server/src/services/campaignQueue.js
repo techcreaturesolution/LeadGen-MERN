@@ -26,13 +26,17 @@ export function composeMessage(campaign, recipient) {
   const sender = campaign.from;
   const { subject, text } = renderEmail(campaign, recipient, sender);
   const unsubUrl = `${env.mail.publicUrl}/api/unsubscribe/${signUnsubscribe(campaign.owner, recipient.email)}`;
-  const footer = `\n\n--\nDon't want emails from ${sender.name || sender.email}? Unsubscribe: ${unsubUrl}`;
+  const footerText = `\n\n--\nDon't want emails from ${sender.name || sender.email}? Unsubscribe: ${unsubUrl}`;
+  const footerHtml = `<div style="margin-top:30px;padding-top:15px;border-top:1px solid #e2e8f0;font-size:12px;color:#64748b;">
+    Don't want emails from ${sender.name || sender.email}? <a href="${unsubUrl}" style="color:#008762;text-decoration:underline;">Unsubscribe here</a>
+  </div>`;
+  
   return buildMime({
     from: sender,
     to: { email: recipient.email, name: recipient.business },
     subject,
-    text: text + footer,
-    html: textToHtml(text + footer),
+    text: text + footerText,
+    html: textToHtml(text) + footerHtml,
     headers: {
       'List-Unsubscribe': `<${unsubUrl}>, <mailto:${sender.email}?subject=unsubscribe>`,
       'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click',

@@ -10,7 +10,14 @@ export default function Login() {
   const navigate = useNavigate();
   const [config, setConfig] = useState(null);
   const [error, setError] = useState('');
-  const [devEmail, setDevEmail] = useState('');
+  
+  // Auth Form State
+  const [isSignup, setIsSignup] = useState(false);
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [name, setName] = useState('');
+  const [phone, setPhone] = useState('');
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     api
@@ -36,14 +43,22 @@ export default function Login() {
     }
   };
 
-  const onDev = async (e) => {
+  const onEmailSubmit = async (e) => {
     e.preventDefault();
     setError('');
+    setLoading(true);
     try {
-      const { data } = await api.post('/auth/dev', { email: devEmail });
-      finish(data);
+      if (isSignup) {
+        const { data } = await api.post('/auth/signup', { email, password, name, phone });
+        finish(data);
+      } else {
+        const { data } = await api.post('/auth/login', { email, password });
+        finish(data);
+      }
     } catch (err) {
       setError(errMsg(err));
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -121,24 +136,78 @@ export default function Login() {
         <div className="w-full md:w-[420px] bg-[#fdfdfd] px-8 py-6 md:px-12 md:py-8 border-t md:border-t-0 md:border-l border-gray-100 flex flex-col justify-center">
           <div className="w-full max-w-[320px] mx-auto">
             <div className="text-center">
-              <h2 className="text-[22px] font-extrabold text-gray-900">Get Started Free</h2>
-              <p className="mt-1.5 text-[14px] font-medium text-gray-500">No credit card or setup required.</p>
+              <h2 className="text-[22px] font-extrabold text-gray-900">{isSignup ? 'Create an Account' : 'Welcome Back'}</h2>
+              <p className="mt-1.5 text-[14px] font-medium text-gray-500">
+                {isSignup ? 'Sign up to get started free.' : 'Log in to your account.'}
+              </p>
             </div>
 
-            <form onSubmit={onDev} className="mt-8">
-              <label className="block text-[13px] font-bold text-gray-700 mb-2">Work Email</label>
-              <input 
-                type="email" 
-                placeholder="name@company.com" 
-                value={devEmail}
-                onChange={(e) => setDevEmail(e.target.value)}
-                className="w-full rounded-xl border border-gray-200 px-4 py-3 text-[14px] outline-none transition-all placeholder:text-gray-400 focus:border-[#009b71] focus:ring-1 focus:ring-[#009b71]"
-                required
-              />
-              <button type="submit" className="mt-3 w-full rounded-xl bg-[#009b71] px-4 py-3 text-[14px] font-bold text-white shadow-sm transition-colors hover:bg-[#008762]">
-                Continue with Email
+            <form onSubmit={onEmailSubmit} className="mt-8 space-y-4">
+              {isSignup && (
+                <>
+                  <div>
+                    <label className="block text-[13px] font-bold text-gray-700 mb-1">Full Name</label>
+                    <input 
+                      type="text" 
+                      placeholder="John Doe" 
+                      value={name}
+                      onChange={(e) => setName(e.target.value)}
+                      className="w-full rounded-xl border border-gray-200 px-4 py-3 text-[14px] outline-none transition-all placeholder:text-gray-400 focus:border-[#009b71] focus:ring-1 focus:ring-[#009b71]"
+                      required={isSignup}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[13px] font-bold text-gray-700 mb-1">Phone Number</label>
+                    <input 
+                      type="tel" 
+                      placeholder="+91 9876543210" 
+                      value={phone}
+                      onChange={(e) => setPhone(e.target.value)}
+                      className="w-full rounded-xl border border-gray-200 px-4 py-3 text-[14px] outline-none transition-all placeholder:text-gray-400 focus:border-[#009b71] focus:ring-1 focus:ring-[#009b71]"
+                    />
+                  </div>
+                </>
+              )}
+              
+              <div>
+                <label className="block text-[13px] font-bold text-gray-700 mb-1">Work Email</label>
+                <input 
+                  type="email" 
+                  placeholder="name@company.com" 
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  className="w-full rounded-xl border border-gray-200 px-4 py-3 text-[14px] outline-none transition-all placeholder:text-gray-400 focus:border-[#009b71] focus:ring-1 focus:ring-[#009b71]"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="block text-[13px] font-bold text-gray-700 mb-1">Password</label>
+                <input 
+                  type="password" 
+                  placeholder="••••••••" 
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className="w-full rounded-xl border border-gray-200 px-4 py-3 text-[14px] outline-none transition-all placeholder:text-gray-400 focus:border-[#009b71] focus:ring-1 focus:ring-[#009b71]"
+                  required
+                />
+              </div>
+
+              <button type="submit" disabled={loading} className="mt-2 w-full rounded-xl bg-[#009b71] px-4 py-3 text-[14px] font-bold text-white shadow-sm transition-colors hover:bg-[#008762] disabled:opacity-70">
+                {loading ? 'Processing...' : (isSignup ? 'Create Account' : 'Log In')}
               </button>
             </form>
+
+            <div className="mt-4 text-center text-[13px] font-medium text-gray-500">
+              {isSignup ? "Already have an account?" : "Don't have an account?"}{" "}
+              <button 
+                type="button" 
+                onClick={() => { setIsSignup(!isSignup); setError(''); }} 
+                className="text-[#009b71] hover:underline font-bold"
+              >
+                {isSignup ? 'Log in here' : 'Sign up here'}
+              </button>
+            </div>
 
             <div className="my-6 flex items-center gap-3 text-[11px] font-bold text-gray-400 uppercase tracking-widest">
               <div className="h-px flex-1 bg-gray-100"></div>

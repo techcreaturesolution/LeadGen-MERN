@@ -1,4 +1,5 @@
 import { Router } from 'express';
+import bcrypt from 'bcryptjs';
 import { OAuth2Client } from 'google-auth-library';
 import { z } from 'zod';
 import { env } from '../config/env.js';
@@ -71,6 +72,48 @@ router.post('/dev', async (req, res) => {
 
 router.get('/me', requireAuth, (req, res) => {
   res.json({ user: req.user.toPublic() });
+});
+
+router.post('/signup', async (req, res) => {
+  const { name, email, phone, password } = z.object({
+    name: z.string().min(1),
+    email: z.string().email(),
+    phone: z.string().optional(),
+    password: z.string().min(6),
+  }).parse(req.body);
+
+  checkDomain(email.toLowerCase());
+  const existing = await User.findOne({ email: email.toLowerCase() });
+  if (existing) throw new HttpError(400, 'Email already in use');
+
+  const hashedPassword = await bcrypt.hash(password, 10);
+  const user = await User.create({
+    name,
+    email: email.toLowerCase(),
+    phone,
+    password: hashedPassword,
+    role: env.adminEmails.includes(email.toLowerCase()) ? 'admin' : 'user',
+  });
+  res.json({ token: signToken(user), user: user.toPublic() });
+});
+
+router.post('/login', async (req, res) => {
+  const { email, password } = z.object({
+    email: z.string().email(),
+    password: z.string().min(1),
+  }).parse(req.body);
+
+  const user = await User.findOne({ email: email.toLowerCase() }).select('+password');
+  if (!user || !user.password) throw new HttpError(401, 'Invalid email or password');
+  
+  const isValid = await bcrypt.compare(password, user.password);
+  if (!isValid) throw new HttpError(401, 'Invalid email or password');
+  if (!user.active) throw new HttpError(403, 'Account disabled');
+  
+  user.lastLoginAt = new Date();
+  await user.save();
+  
+  res.json({ token: signToken(user), user: user.toPublic() });
 });
 
 export default router;

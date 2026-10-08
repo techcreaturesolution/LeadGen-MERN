@@ -155,7 +155,7 @@ export default function Layout() {
 
       <div className="flex min-w-0 flex-1 flex-col">
         {/* Top Header */}
-        <header className="flex h-[72px] items-center justify-between border-b border-slate-200 bg-white px-6">
+        <header className="sticky top-0 z-30 flex h-[72px] items-center justify-between border-b border-slate-200 bg-white/95 backdrop-blur-sm px-6">
           {/* Hamburger toggle + Logo */}
           <div className="flex items-center gap-3">
             <button

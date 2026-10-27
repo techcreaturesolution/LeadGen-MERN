@@ -112,7 +112,7 @@ export default function NewSearchForm() {
                 <label
                   key={k}
                   className={`flex cursor-pointer items-center gap-2 rounded-lg border px-3 py-2 text-sm ${sources.includes(k) ? 'border-[#008762] bg-[#008762]/10' : 'border-slate-300'} ${off ? 'opacity-50' : ''}`}
-                  title={off ? 'Needs SERPAPI_KEY or GOOGLE_CSE_KEY on the server' : ''}
+                  title={off ? 'This source is currently unavailable' : ''}
                 >
                   <input type="checkbox" checked={sources.includes(k)} onChange={() => toggle(k)} />
                   {label}

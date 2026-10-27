@@ -4,7 +4,6 @@ import AdminLeadsTable from '../components/admin/AdminLeadsTable.jsx';
 import ClientsTab from '../components/admin/ClientsTab.jsx';
 import SearchesTab from '../components/admin/SearchesTab.jsx';
 import { api, errMsg } from '../lib/api.js';
-import { getAdsenseConfig } from '../lib/adsense.js';
 
 const EMPTY = {
   advertiser: '',
@@ -122,35 +121,6 @@ function AdForm({ initial, onSaved, onCancel }) {
   );
 }
 
-function AdsenseStatus() {
-  const [config, setConfig] = useState(null);
-  useEffect(() => {
-    getAdsenseConfig().then(setConfig);
-  }, []);
-  if (!config) return null;
-  const slots = Object.entries(config.slots || {});
-  return (
-    <div className="card text-sm">
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <div className="font-semibold">Google AdSense</div>
-        <span className={`badge ${config.client ? 'bg-green-100 text-green-800' : 'bg-amber-100 text-amber-800'}`}>
-          {config.client ? `Live · ${config.client}${config.testMode ? ' (test mode)' : ''}` : 'Not configured · demo ads shown'}
-        </span>
-      </div>
-      <p className="mt-1 text-slate-500">
-        AdSense runs on user pages (dashboard, searches, leads, login) and never on Admin. Set <code>ADSENSE_CLIENT_ID</code> and the{' '}
-        <code>ADSENSE_SLOT_*</code> ad unit IDs in <code>server/.env</code>.
-      </p>
-      <div className="mt-2 flex flex-wrap gap-2">
-        {slots.map(([name, id]) => (
-          <span key={name} className="badge bg-slate-100 text-slate-700">
-            {name}: {config.client && id ? id : 'demo'}
-          </span>
-        ))}
-      </div>
-    </div>
-  );
-}
 
 const TABS = { clients: 'Clients', leads: 'All leads', searches: 'Searches', ads: 'Advertisements' };
 
@@ -167,7 +137,7 @@ export default function Admin() {
     api.get('/admin/stats').then((r) => setStats(r.data)).catch((e) => setError(errMsg(e)));
     api.get('/admin/ads').then((r) => setAds(r.data.items)).catch((e) => setError(errMsg(e)));
   };
-  useEffect(load, []);
+  useEffect(load, [tab]);
 
   const removeAd = async (id) => {
     if (!window.confirm('Delete this ad?')) return;
@@ -227,7 +197,6 @@ export default function Admin() {
       {tab === 'searches' && <SearchesTab />}
       {tab === 'ads' && (
         <div className="space-y-4">
-          <AdsenseStatus />
           {editing ? (
             <AdForm
               key={editing._id || 'new'}

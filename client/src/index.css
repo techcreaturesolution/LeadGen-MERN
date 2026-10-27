@@ -11,3 +11,49 @@
   .th { @apply px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-slate-500; }
   .td { @apply px-3 py-2 align-top text-sm text-slate-700; }
 }
+
+@keyframes twinkle {
+  0%, 100% { opacity: 0.25; transform: scale(0.85); }
+  50% { opacity: 1; transform: scale(1.2); }
+}
+
+@keyframes aurora-1 {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  50% { transform: translate(12vw, 8vh) scale(1.15); }
+}
+
+@keyframes aurora-2 {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  50% { transform: translate(-8vw, -12vh) scale(1.2); }
+}
+
+@keyframes aurora-3 {
+  0%, 100% { transform: translate(0, 0) scale(1.1); }
+  50% { transform: translate(16vw, -8vh) scale(0.9); }
+}
+
+@keyframes aurora-4 {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  50% { transform: translate(-12vw, 12vh) scale(1.1); }
+}
+
+.animate-twinkle {
+  animation: twinkle 3.5s ease-in-out infinite;
+}
+
+.animate-aurora-1 {
+  animation: aurora-1 18s ease-in-out infinite alternate;
+}
+
+.animate-aurora-2 {
+  animation: aurora-2 22s ease-in-out infinite alternate;
+}
+
+.animate-aurora-3 {
+  animation: aurora-3 25s ease-in-out infinite alternate;
+}
+
+.animate-aurora-4 {
+  animation: aurora-4 20s ease-in-out infinite alternate;
+}
+

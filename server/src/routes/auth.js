@@ -43,7 +43,7 @@ router.get('/config', (_req, res) => {
 
 router.post('/google', async (req, res) => {
   const { credential } = z.object({ credential: z.string().min(10) }).parse(req.body);
-  if (!env.googleClientId) throw new HttpError(500, 'GOOGLE_CLIENT_ID is not configured on the server');
+  if (!env.googleClientId) throw new HttpError(500, 'Google sign-in is not configured on the server');
   let payload;
   try {
     const ticket = await googleClient.verifyIdToken({ idToken: credential, audience: env.googleClientId });

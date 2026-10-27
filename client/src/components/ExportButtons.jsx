@@ -1,10 +1,12 @@
 import { useState } from 'react';
 import { downloadExport, errMsg } from '../lib/api.js';
+import { Download } from 'lucide-react';
 
 export default function ExportButtons({ params = {}, disabled, path }) {
   const [busy, setBusy] = useState(null);
   const [format, setFormat] = useState('xlsx');
   const [error, setError] = useState('');
+
   const run = async (count) => {
     setBusy(count);
     setError('');
@@ -16,13 +18,13 @@ export default function ExportButtons({ params = {}, disabled, path }) {
       setBusy(null);
     }
   };
+
   return (
-    <div className="flex flex-wrap items-center gap-2.5">
-      <div className="flex items-center gap-2">
-        <span className="text-sm font-medium text-emerald-100">Export as:</span>
+    <div className="flex flex-wrap items-center gap-2">
+      <div className="flex items-center gap-1.5">
         <select 
           aria-label="Export format" 
-          className="rounded-lg border border-white/20 bg-white/10 px-3 py-2 text-sm text-white outline-none focus:border-white focus:ring-1 focus:ring-white disabled:opacity-50 transition-colors hover:bg-white/20 cursor-pointer [&>option]:bg-slate-800" 
+          className="rounded-lg border border-slate-300 bg-white px-2.5 py-1.5 text-xs font-medium text-slate-700 outline-none focus:border-[#008762] focus:ring-1 focus:ring-[#008762] disabled:opacity-50 transition-colors cursor-pointer shadow-sm" 
           value={format} 
           onChange={(e) => setFormat(e.target.value)} 
           disabled={disabled || busy !== null}
@@ -32,20 +34,21 @@ export default function ExportButtons({ params = {}, disabled, path }) {
         </select>
       </div>
       
-      <div className="flex items-center gap-1.5 ml-1">
+      <div className="flex items-center gap-1">
         {['20', '40', '60', 'all'].map((c) => (
           <button 
             key={c} 
             type="button" 
-            className="rounded-lg border border-white/20 bg-white/10 px-3.5 py-2 text-sm font-medium text-white transition-all hover:bg-white/20 hover:border-white/40 disabled:opacity-50 disabled:cursor-not-allowed" 
+            className="inline-flex items-center gap-1 rounded-lg border border-slate-300 bg-white px-2.5 py-1.5 text-xs font-semibold text-slate-700 transition-all hover:bg-slate-50 hover:text-[#008762] hover:border-[#008762]/40 disabled:opacity-50 disabled:cursor-not-allowed shadow-sm" 
             disabled={disabled || busy !== null} 
             onClick={() => run(c)}
           >
-            {busy === c ? 'Preparing…' : c === 'all' ? 'All' : `Top ${c}`}
+            {c === 'all' && <Download size={12} />}
+            {busy === c ? 'Preparing…' : c === 'all' ? 'Export All' : `Top ${c}`}
           </button>
         ))}
       </div>
-      {error && <span className="text-sm text-red-300 font-medium ml-2">{error}</span>}
+      {error && <span className="text-xs text-red-600 font-medium ml-1">{error}</span>}
     </div>
   );
 }

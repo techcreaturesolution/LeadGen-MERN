@@ -8,6 +8,7 @@ import Campaigns from './pages/Campaigns.jsx';
 import Dashboard from './pages/Dashboard.jsx';
 import GroupDetail from './pages/GroupDetail.jsx';
 import Groups from './pages/Groups.jsx';
+import LandingPage from './pages/LandingPage.tsx';
 import Leads from './pages/Leads.jsx';
 import Login from './pages/Login.jsx';
 import SearchDetail from './pages/SearchDetail.jsx';
@@ -22,10 +23,24 @@ function Protected({ children, admin = false }) {
   return children;
 }
 
+function DashboardOrLanding() {
+  const { user, loading } = useAuth();
+  if (loading) return <div className="p-10 text-center text-slate-500">Loading…</div>;
+  if (!user) return <LandingPage />;
+  return (
+    <Layout>
+      <Dashboard />
+    </Layout>
+  );
+}
+
 export default function App() {
   return (
     <Routes>
+      <Route path="/" element={<DashboardOrLanding />} />
+      <Route path="/landing" element={<LandingPage />} />
       <Route path="/login" element={<Login />} />
+      <Route path="/register" element={<Login />} />
       <Route
         element={
           <Protected>
@@ -33,7 +48,6 @@ export default function App() {
           </Protected>
         }
       >
-        <Route index element={<Dashboard />} />
         <Route path="searches" element={<Searches />} />
         <Route path="searches/:id" element={<SearchDetail />} />
         <Route path="leads" element={<Leads />} />

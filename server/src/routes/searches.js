@@ -14,7 +14,23 @@ import { enrichmentProviders } from '../services/enrich/index.js';
 import { ruleBasedPlan } from '../services/agent/leadAgent.js';
 import { HttpError } from '../utils/httpError.js';
 
+import mongoose from 'mongoose';
+import { generateSearchTemplate } from '../services/agent/templateAgent.js';
+
 const router = Router();
+const generateLimiter = rateLimit({ windowMs: 60_000, limit: 10, standardHeaders: 'draft-7', legacyHeaders: false });
+
+const generateSchema = z
+  .object({
+    service: z.string().trim().max(200).optional(),
+    businessName: z.string().trim().max(120).optional(),
+    offerDescription: z.string().trim().max(1000).optional(),
+    mainBenefit: z.string().trim().max(1000).optional(),
+    tone: z.enum(['professional', 'friendly', 'persuasive']).default('professional'),
+    language: z.string().trim().max(50).default('English'),
+  })
+  .default({});
+
 
 const BEAT_CREDIT_MS = 3000;
 
@@ -131,6 +147,39 @@ router.post('/:id/ad', async (req, res) => {
   }
   await job.save();
   res.json({ adGate: publicAdGate(job) });
+});
+
+router.post('/:id/generate-template', generateLimiter, async (req, res) => {
+  if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+    throw new HttpError(400, 'Invalid search ID');
+  }
+
+  const job = await SearchJob.findOne({ _id: req.params.id, owner: req.user._id });
+  if (!job) throw new HttpError(404, 'Search not found');
+
+  if (job.status === 'running' || job.status === 'queued') {
+    throw new HttpError(400, 'Search is still running. Please wait for it to complete before generating a template.');
+  }
+  if (job.status === 'failed') {
+    throw new HttpError(400, 'Search has failed and cannot be used to generate a template.');
+  }
+  if (job.status !== 'completed') {
+    throw new HttpError(400, 'Search must be completed before generating a template.');
+  }
+
+  if (isAdLocked(job)) {
+    throw new HttpError(403, 'Watch the full video ad to unlock results before generating templates');
+  }
+
+  const userOffer = generateSchema.parse(req.body || {});
+
+  const leads = await Lead.find({ job: job._id, owner: req.user._id }).sort({ rank: 1 }).limit(50).lean();
+  if (!leads.length) {
+    throw new HttpError(400, 'No leads found for this search. Cannot generate a template without company data.');
+  }
+
+  const result = await generateSearchTemplate({ job, leads, userOffer, user: req.user, crawlWebsites: true });
+  res.json(result);
 });
 
 router.delete('/:id', async (req, res) => {

@@ -2,12 +2,15 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import GoogleAd from '../components/GoogleAd.jsx';
 import StatusBadge from '../components/StatusBadge.jsx';
+import GenerateTemplateModal from '../components/GenerateTemplateModal.jsx';
 import { api, daysLeft, errMsg, SOURCE_LABELS } from '../lib/api.js';
 
 export default function Searches() {
   const [data, setData] = useState({ items: [], total: 0, page: 1, limit: 20 });
   const [page, setPage] = useState(1);
   const [error, setError] = useState('');
+  const [generatingId, setGeneratingId] = useState(null);
+  const [templateModalData, setTemplateModalData] = useState(null);
 
   const load = (p) =>
     api
@@ -18,6 +21,65 @@ export default function Searches() {
   useEffect(() => {
     load(page);
   }, [page]);
+
+  const handleGenerateTemplate = async (search) => {
+    if (generatingId) return;
+    setGeneratingId(search._id);
+    setError('');
+    try {
+      let draft;
+      try {
+        const res = await api.post(`/searches/${search._id}/generate-template`, {});
+        draft = res.data.draft;
+      } catch (err) {
+        // If the backend on Render hasn't deployed the new route yet (404), fall back seamlessly to existing deployed endpoints
+        if (err.response?.status === 404) {
+          const leadsRes = await api.get('/leads', { params: { jobId: search._id, limit: 20 } }).catch(() => ({ data: { items: [] } }));
+          const leads = leadsRes.data?.items || [];
+          const queryClean = (search.query || 'business leads').replace(/\s+/g, ' ').trim();
+          const audience = queryClean;
+          const offer = `Professional B2B services and collaboration for ${queryClean}`.slice(0, 290);
+
+          const draftRes = await api.post('/templates/draft', {
+            offer,
+            audience,
+            tone: 'professional',
+          });
+
+          const rawDraft = draftRes.data.draft || {};
+          const keywords = [
+            ...new Set(
+              queryClean
+                .toLowerCase()
+                .split(/\s+/)
+                .filter((w) => w.length > 2 && !/^(of|in|for|and|to|the|at|contacts?|emails?|list|all|with)$/i.test(w)),
+            ),
+          ].slice(0, 5);
+
+          let body = rawDraft.body || `Hi {{business|there}} team,\n\nI came across {{business}} while looking at companies in ${search.plan?.location || 'your area'}.\n\nWould you be open to a quick 15-minute call?\n\nBest regards,\n{{my_name}}\n{{my_email}}`;
+          if (!body.includes('{{business')) {
+            body = `Hi {{business|there}} team,\n\n${body}`;
+          }
+
+          draft = {
+            name: rawDraft.name || `${queryClean} Outreach`,
+            subject: rawDraft.subject || `Business Solutions for {{business}}`,
+            body,
+            researchSummary: `Target audience of ${leads.length || search.leadCount || 0} companies derived from "${queryClean}".`,
+            keywords,
+          };
+        } else {
+          throw err;
+        }
+      }
+
+      setTemplateModalData({ search, draft });
+    } catch (err) {
+      setError(errMsg(err));
+    } finally {
+      setGeneratingId(null);
+    }
+  };
 
   const remove = async (id) => {
     if (!window.confirm('Delete this search and its leads?')) return;
@@ -50,7 +112,7 @@ export default function Searches() {
               <th className="th">Status</th>
               <th className="th">Created</th>
               <th className="th">Expires</th>
-              <th className="th" />
+              <th className="th text-right">Actions</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100">
@@ -73,7 +135,24 @@ export default function Searches() {
                 <td className="td whitespace-nowrap text-xs text-slate-500" title={j.expiresAt && new Date(j.expiresAt).toLocaleString()}>
                   {j.expiresAt ? `in ${daysLeft(j.expiresAt)} d` : '—'}
                 </td>
-                <td className="td text-right">
+                <td className="td text-right whitespace-nowrap space-x-3">
+                  {j.status === 'completed' && (
+                    <button
+                      type="button"
+                      disabled={generatingId === j._id}
+                      onClick={() => handleGenerateTemplate(j)}
+                      className="text-xs font-medium text-[#008762] hover:underline disabled:opacity-60 disabled:cursor-wait"
+                    >
+                      {generatingId === j._id ? (
+                        <span className="inline-flex items-center gap-1">
+                          <span className="inline-block h-2.5 w-2.5 animate-spin rounded-full border-2 border-[#008762] border-t-transparent" />
+                          Generating…
+                        </span>
+                      ) : (
+                        'Generate AI Template'
+                      )}
+                    </button>
+                  )}
                   {j.status !== 'running' && (
                     <button type="button" onClick={() => remove(j._id)} className="text-xs text-red-600 hover:underline">
                       Delete
@@ -105,6 +184,13 @@ export default function Searches() {
             Next
           </button>
         </div>
+      )}
+      {templateModalData && (
+        <GenerateTemplateModal
+          search={templateModalData.search}
+          initialDraft={templateModalData.draft}
+          onClose={() => setTemplateModalData(null)}
+        />
       )}
     </div>
   );

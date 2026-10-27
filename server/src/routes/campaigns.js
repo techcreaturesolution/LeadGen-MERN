@@ -23,7 +23,7 @@ async function ownCampaign(req, projection) {
 }
 
 function gmailReady(user) {
-  if (env.mail.dryRun) throw new HttpError(400, 'Real sending is switched off on this server (EMAIL_DRY_RUN=true). Use a test run.');
+  if (env.mail.dryRun) throw new HttpError(400, 'Real sending is switched off on this server. Use a test run.');
   if (!gmailConfigured()) throw new HttpError(400, 'Gmail sending is not configured on the server yet. Use a test run.');
   if (!user.gmail?.email) throw new HttpError(400, 'Connect your Gmail account first');
 }

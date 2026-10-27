@@ -64,7 +64,10 @@ export default function Searches() {
                 <td className="td text-xs">{j.sources.map((s) => SOURCE_LABELS[s]).join(', ')}</td>
                 <td className="td">{j.targetCount}</td>
                 <td className="td">
-                  {j.leadCount} <span className="text-xs text-slate-400">({j.progress?.withEmail || 0} with email)</span>
+                  <Link to={`/searches/${j._id}`} className="font-semibold text-[#008762] hover:underline flex items-center gap-1.5">
+                    <span>{j.leadCount}</span>
+                    <span className="text-xs font-normal text-slate-400">({j.progress?.withEmail || 0} with email)</span>
+                  </Link>
                 </td>
                 <td className="td">
                   <StatusBadge status={j.status} />

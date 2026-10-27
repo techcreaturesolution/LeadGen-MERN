@@ -46,7 +46,7 @@ function DemoAd({ slot }) {
         </div>
         <span className={`shrink-0 rounded-full bg-[#008762] px-3 py-1 text-center text-xs font-semibold text-white ${horizontal ? '' : 'mt-auto'}`}>{creative.cta}</span>
       </div>
-      <span className="absolute right-1 top-1 rounded bg-white/80 px-1 text-[9px] text-slate-400" title="Placeholder shown until an AdSense ad unit is configured">
+      <span className="absolute right-1 top-1 rounded bg-white/80 px-1 text-[9px] text-slate-400">
         {f.size}
       </span>
     </div>

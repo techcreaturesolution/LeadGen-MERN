@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
+import { Download, Users } from 'lucide-react';
 import AdSlot from '../components/AdSlot.jsx';
 import GoogleAd from '../components/GoogleAd.jsx';
 import ExportButtons from '../components/ExportButtons.jsx';
@@ -7,7 +8,7 @@ import LeadsTable from '../components/LeadsTable.jsx';
 import SaveToGroup from '../components/SaveToGroup.jsx';
 import StatusBadge from '../components/StatusBadge.jsx';
 import VideoAdGate from '../components/VideoAdGate.jsx';
-import { api, daysLeft, errMsg, SOURCE_LABELS } from '../lib/api.js';
+import { api, daysLeft, downloadExport, errMsg, SOURCE_LABELS } from '../lib/api.js';
 
 const STAGES = ['planning', 'discovering', 'resolving websites', 'enriching companies', 'crawling websites', 'qualifying', 'finding contacts', 'ai summary', 'done'];
 
@@ -18,6 +19,39 @@ export default function SearchDetail() {
   const [error, setError] = useState('');
   const [showLogs, setShowLogs] = useState(false);
   const [unlockTick, setUnlockTick] = useState(0);
+  const [isExporting, setIsExporting] = useState(false);
+  const [selected, setSelected] = useState(() => new Set());
+
+  const toggle = (leadId) =>
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (next.has(leadId)) next.delete(leadId);
+      else next.add(leadId);
+      return next;
+    });
+
+  const toggleAll = (rows, on) =>
+    setSelected((prev) => {
+      const next = new Set(prev);
+      rows.forEach((l) => (on ? next.add(l._id) : next.delete(l._id)));
+      return next;
+    });
+
+  const handleExportExcel = async () => {
+    try {
+      setIsExporting(true);
+      if (selected.size > 0) {
+        await downloadExport({ ids: [...selected].join(','), format: 'xlsx', count: 'all' });
+      } else {
+        await downloadExport({ jobId: id, format: 'xlsx', count: 'all' });
+      }
+    } catch (e) {
+      setError(errMsg(e));
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
   const onUnlocked = useCallback(() => setUnlockTick((n) => n + 1), []);
 
   useEffect(() => {
@@ -155,8 +189,48 @@ export default function SearchDetail() {
       <AdSlot placement="dashboard_banner" />
 
       {done && !locked && (
-        <div className="card p-0">
-          <LeadsTable leads={leads} />
+        <div className="rounded-2xl border border-slate-200 bg-white shadow-sm overflow-hidden flex flex-col">
+          <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 bg-slate-50/90 px-5 py-3.5">
+            <div className="flex items-center gap-2.5">
+              <div className="grid h-8 w-8 place-items-center rounded-lg bg-emerald-50 text-[#008762]">
+                <Users size={16} />
+              </div>
+              <div>
+                <h2 className="text-sm font-bold text-slate-800">
+                  {selected.size > 0 ? `${selected.size} of ${leads.length} Leads Selected` : `Search Leads (${leads.length})`}
+                </h2>
+                <p className="text-[11px] text-slate-500">Verified leads discovered for "{job.query}"</p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2">
+              {selected.size > 0 && (
+                <button
+                  type="button"
+                  onClick={() => setSelected(new Set())}
+                  className="text-xs text-slate-500 hover:text-slate-800 underline mr-1 cursor-pointer"
+                >
+                  Clear selection
+                </button>
+              )}
+              <button
+                type="button"
+                onClick={handleExportExcel}
+                disabled={!leads.length || isExporting}
+                className="inline-flex items-center gap-2 rounded-lg bg-[#008762] hover:bg-[#006e50] px-4 py-2 text-xs font-semibold text-white shadow-sm transition-all hover:shadow hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+              >
+                <Download size={14} className={isExporting ? "animate-bounce" : ""} />
+                {isExporting ? 'Exporting...' : selected.size > 0 ? `Export (${selected.size}) to Excel` : 'Export to Excel (.xlsx)'}
+              </button>
+            </div>
+          </div>
+          <LeadsTable 
+            leads={leads} 
+            showRank={true} 
+            selected={selected} 
+            onToggle={toggle} 
+            onToggleAll={toggleAll} 
+          />
         </div>
       )}
 

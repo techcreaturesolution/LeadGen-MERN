@@ -23,57 +23,61 @@ function Protected({ children, admin = false }) {
   return children;
 }
 
-function DashboardOrLanding() {
-  const { user, loading } = useAuth();
-  if (loading) return <div className="p-10 text-center text-slate-500">Loading…</div>;
-  if (!user) return <LandingPage />;
-  return (
-    <Layout>
-      <Dashboard />
-    </Layout>
-  );
-}
-
 export default function App() {
+  const { user, loading } = useAuth();
+
+  if (loading) return <div className="p-10 text-center text-slate-500">Loading…</div>;
+
   return (
     <Routes>
-      <Route path="/" element={<DashboardOrLanding />} />
       <Route path="/landing" element={<LandingPage />} />
-      <Route path="/login" element={<Login />} />
-      <Route path="/register" element={<Login />} />
-      <Route
-        element={
-          <Protected>
-            <Layout />
-          </Protected>
-        }
-      >
-        <Route path="searches" element={<Searches />} />
-        <Route path="searches/:id" element={<SearchDetail />} />
-        <Route path="leads" element={<Leads />} />
-        <Route path="groups" element={<Groups />} />
-        <Route path="groups/:id" element={<GroupDetail />} />
-        <Route path="templates" element={<Templates />} />
-        <Route path="campaigns" element={<Campaigns />} />
-        <Route path="campaigns/:id" element={<CampaignDetail />} />
-        <Route
-          path="admin"
-          element={
-            <Protected admin>
-              <Admin />
-            </Protected>
-          }
-        />
-        <Route
-          path="admin/clients/:id"
-          element={
-            <Protected admin>
-              <AdminClient />
-            </Protected>
-          }
-        />
-      </Route>
-      <Route path="*" element={<Navigate to="/" replace />} />
+      <Route path="/login" element={user ? <Navigate to="/" replace /> : <Login />} />
+      <Route path="/register" element={user ? <Navigate to="/" replace /> : <Login />} />
+
+      {!user ? (
+        <>
+          <Route path="/" element={<LandingPage />} />
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </>
+      ) : (
+        <>
+          <Route
+            element={
+              <Protected>
+                <Layout />
+              </Protected>
+            }
+          >
+            <Route index element={<Dashboard />} />
+            <Route path="dashboard" element={<Dashboard />} />
+            <Route path="searches" element={<Searches />} />
+            <Route path="searches/:id" element={<SearchDetail />} />
+            <Route path="leads" element={<Leads />} />
+            <Route path="groups" element={<Groups />} />
+            <Route path="groups/:id" element={<GroupDetail />} />
+            <Route path="templates" element={<Templates />} />
+            <Route path="campaigns" element={<Campaigns />} />
+            <Route path="campaigns/:id" element={<CampaignDetail />} />
+            <Route
+              path="admin"
+              element={
+                <Protected admin>
+                  <Admin />
+                </Protected>
+              }
+            />
+            <Route
+              path="admin/clients/:id"
+              element={
+                <Protected admin>
+                  <AdminClient />
+                </Protected>
+              }
+            />
+          </Route>
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </>
+      )}
     </Routes>
   );
 }

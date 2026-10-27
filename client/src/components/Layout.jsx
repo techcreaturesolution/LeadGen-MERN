@@ -13,7 +13,7 @@ const linkCls = ({ isActive }) =>
     isActive ? 'bg-[#008762] text-white shadow-sm' : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
   }`;
 
-export default function Layout() {
+export default function Layout({ children }) {
   const { user, logout } = useAuth();
   const { pathname } = useLocation();
   const showAds = !pathname.startsWith('/admin');
@@ -257,7 +257,7 @@ export default function Layout() {
         <div className="mx-auto flex w-full max-w-[1600px] flex-1 gap-6 p-4 md:p-8">
           <main className="min-w-0 flex-1 space-y-6">
             {showAds && <GoogleAd key={`top-${pathname}`} slot="banner" />}
-            <Outlet />
+            {children || <Outlet />}
           </main>
           {showAds && (
             <aside key={`rail-${pathname}`} className="hidden w-[300px] shrink-0 xl:block">

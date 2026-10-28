@@ -1,15 +1,15 @@
 import React, { useMemo } from 'react';
 
 export const StarryBackground: React.FC = () => {
-  // Generate a deterministic list of stars to prevent re-render shifts
+  // Generate deterministic stars optimized for GPU compositor layers
   const stars = useMemo(() => {
-    return Array.from({ length: 60 }).map((_, i) => {
-      const top = ((i * 37 + 13) % 100);
-      const left = ((i * 61 + 23) % 100);
-      const size = (i % 3 === 0 ? 2 : i % 2 === 0 ? 1.5 : 1);
-      const duration = 2.5 + (i % 5) * 0.8;
-      const delay = (i % 7) * 0.5;
-      const opacity = 0.3 + (i % 5) * 0.15;
+    return Array.from({ length: 36 }).map((_, i) => {
+      const top = ((i * 47 + 13) % 100);
+      const left = ((i * 59 + 23) % 100);
+      const size = (i % 3 === 0 ? 2 : 1.5);
+      const duration = 2.5 + (i % 4) * 0.8;
+      const delay = (i % 5) * 0.4;
+      const opacity = 0.35 + (i % 4) * 0.15;
 
       return {
         id: i,
@@ -25,11 +25,11 @@ export const StarryBackground: React.FC = () => {
   }, []);
 
   return (
-    <div className="absolute inset-0 pointer-events-none overflow-hidden select-none z-0">
+    <div className="absolute inset-0 pointer-events-none overflow-hidden select-none z-0 transform-gpu">
       {stars.map((star) => (
         <span
           key={star.id}
-          className="absolute rounded-full bg-white animate-twinkle shadow-[0_0_6px_rgba(255,255,255,0.8)]"
+          className="absolute rounded-full bg-white animate-twinkle will-change-[opacity]"
           style={{
             top: star.top,
             left: star.left,

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence, PanInfo } from 'framer-motion';
-import { Star, Sparkles, Quote, Hand } from 'lucide-react';
+import { Star, Sparkles, Quote, Hand } from '@/components/icons';
 
 const testimonials = [
   {
@@ -8,7 +8,7 @@ const testimonials = [
     name: "Sarah Jenkins",
     role: "VP of Sales, TechGrowth",
     content: "LeadReach AI completely transformed our outbound strategy. We went from finding 50 leads a week to booking 20 meetings a day. The AI personalization is uncanny.",
-    avatar: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&q=80&w=150",
+    avatar: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&q=70&w=96&h=96",
     color: "from-blue-500/20 to-cyan-500/20"
   },
   {
@@ -16,7 +16,7 @@ const testimonials = [
     name: "Marcus Thorne",
     role: "Founder, Apex Agency",
     content: "I've used every CRM on the market. Nothing comes close to the automated pipeline LeadReach provides. It's truly a game changer for our SDRs.",
-    avatar: "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?auto=format&fit=crop&q=80&w=150",
+    avatar: "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?auto=format&fit=crop&q=70&w=96&h=96",
     color: "from-purple-500/20 to-pink-500/20"
   },
   {
@@ -24,7 +24,7 @@ const testimonials = [
     name: "Elena Rodriguez",
     role: "Marketing Director, CloudSync",
     content: "The data enrichment alone is worth the price. It finds verified emails that Hunter and ZoomInfo miss. The automated follow-ups are just the cherry on top.",
-    avatar: "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?auto=format&fit=crop&q=80&w=150",
+    avatar: "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?auto=format&fit=crop&q=70&w=96&h=96",
     color: "from-emerald-500/20 to-teal-500/20"
   },
   {
@@ -32,7 +32,7 @@ const testimonials = [
     name: "David Chen",
     role: "Head of Growth, Elevate B2B",
     content: "Watching the AI agents work in real-time is mind-blowing. It handles the busywork so my sales team can actually focus on closing deals.",
-    avatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&q=80&w=150",
+    avatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&q=70&w=96&h=96",
     color: "from-amber-500/20 to-orange-500/20"
   },
   {
@@ -40,7 +40,7 @@ const testimonials = [
     name: "Jessica Walsh",
     role: "CEO, InnovateNow",
     content: "Since we started using LeadReach AI, our conversion rates have doubled. It's like magic. We've scaled our pipeline without adding headcount.",
-    avatar: "https://images.unsplash.com/photo-1487412720507-e7ab37603c6f?auto=format&fit=crop&q=80&w=150",
+    avatar: "https://images.unsplash.com/photo-1487412720507-e7ab37603c6f?auto=format&fit=crop&q=70&w=96&h=96",
     color: "from-rose-500/20 to-red-500/20"
   }
 ];
@@ -160,6 +160,10 @@ export const TestimonialsSection = () => {
                      <img 
                        src={testimonial.avatar} 
                        alt={testimonial.name} 
+                       width="56"
+                       height="56"
+                       loading="lazy"
+                       decoding="async"
                        className="w-14 h-14 rounded-full border-2 border-white/20 object-cover pointer-events-none select-none" 
                      />
                      <div>
@@ -184,4 +188,3 @@ export const TestimonialsSection = () => {
     </section>
   );
 };
-

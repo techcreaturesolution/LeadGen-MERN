@@ -1,6 +1,6 @@
 import React from 'react';
 import { motion } from 'framer-motion';
-import { Database, Sparkles, Zap, ShieldCheck, ArrowUpRight } from 'lucide-react';
+import { Database, Sparkles, Zap, ShieldCheck, ArrowUpRight } from '@/components/icons';
 
 const aspects = [
   {

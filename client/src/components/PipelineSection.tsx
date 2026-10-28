@@ -6,7 +6,7 @@ import { motion, useMotionValue, useSpring, useTransform } from 'framer-motion';
 import {
   Search, MapPin, LayoutDashboard, Sparkles,
   Users, Mail, CheckCircle2, ChevronRight, TrendingUp, Building, Zap
-} from 'lucide-react';
+} from '@/components/icons';
 
 gsap.registerPlugin(ScrollTrigger);
 

@@ -1,6 +1,6 @@
 import React from 'react';
 import { motion } from 'framer-motion';
-import { Star, Target, Zap, ShieldCheck, Globe } from 'lucide-react';
+import { Star, Target, Zap, ShieldCheck, Globe } from '@/components/icons';
 import { StarryBackground } from '@/components/StarryBackground';
 import { ShootingStars } from '@/components/ShootingStars';
 

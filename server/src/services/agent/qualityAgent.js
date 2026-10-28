@@ -186,9 +186,15 @@ const TERM_SYNONYMS = [
   [/^pharma(ceuticals?)?$/i, 'pharma|drug|healthcare|life ?science|laborator'],
   [/^(manufactur\w*|factor(y|ies))$/i, 'manufactur|industr|engineering|works|fabricat|products|factory'],
   [/^(ca|chartered|accountants?)$/i, 'chartered accountant|\\bca\\b|& co|associates|accountan'],
+  [/^(coachings?|institutes?|classes|academ(y|ies)|tutorials?|mentors?)$/i, 'coaching|institute|academy|classes|tutorials?|mentors?|study group|education|learning|prep|tuition|training centre|training center'],
+  [/^(government|govt|sarkari|jobs?)$/i, 'government|govt|sarkari|job|recruitment|civil services|ias|ips|upsc|ssc|psu|bank(ing)?|ibps|rrb|railway|exam'],
+  [/^(ias|upsc|civil)$/i, 'ias|upsc|civil services|ips|ifs|state psc|gpsc|mpsc|uppsc|administrative'],
+  [/^(neet|medical)$/i, 'neet|medical|aiims|neetpg|mbbs|pmt'],
+  [/^(jee|iit)$/i, 'jee|iit|engineering|iit-jee|advance|mains|bitsat|mht-cet'],
+  [/^(gate|ies)$/i, 'gate|ies|ese|psu|technical exam'],
 ];
 
-const SUB_FACILITY = /\b(hostel|canteen|mess|parking|gate( no\.?)?|atm|bus stop|toilet|guest house|auditorium|playground|cafeteria|boys hostel|girls hostel|quarters)\b/i;
+const SUB_FACILITY = /\b(hostel|canteen|mess|parking|main gate|gate\s*(?:no\.?\s*\d+|\d+|[a-d]\b)|atm|bus stop|toilet|guest house|auditorium|playground|cafeteria|boys hostel|girls hostel|quarters)\b/i;
 
 const escapeRe = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
@@ -200,15 +206,21 @@ function stem(word) {
   return escapeRe(w);
 }
 
-export function planTerms(plan) {
-  const words = (plan.keywords?.length ? plan.keywords : String(plan.businessType || '').split(/\s+/))
+export function extractTerms(inputs) {
+  const list = Array.isArray(inputs) ? inputs : String(inputs || '').split(/\s+/);
+  const words = list
     .flatMap((k) => String(k).split(/\s+/))
     .map((w) => w.replace(/[^a-z0-9.&-]/gi, ''))
-    .filter((w) => w.length > 1 && !/^(companies|company|firms?|businesses|agenc(y|ies)|details?|list|top|best|near)$/i.test(w));
+    .filter((w) => w.length > 1 && !/^(companies|company|firms?|businesses|agenc(y|ies)|details?|list|top|best|near|for|with|and|the)$/i.test(w));
   return [...new Set(words.map((w) => w.toLowerCase()))].map((w) => {
     const syn = TERM_SYNONYMS.find(([re]) => re.test(w));
     return { word: w, re: new RegExp(syn ? syn[1] : stem(w), 'i') };
   });
+}
+
+export function planTerms(plan) {
+  const inputs = plan.keywords?.length ? plan.keywords : String(plan.businessType || '').split(/\s+/);
+  return extractTerms(inputs);
 }
 
 export function matchLocation(lead, plan) {
@@ -223,19 +235,41 @@ export function matchLocation(lead, plan) {
   return { ok: false, location: null };
 }
 
-// Deterministic relevance check: every keyword of the request must be supported by the business name, category or website title.
+// Relevance check: evaluates location, business type, and target keywords.
 export function assessRelevance(lead, plan) {
   const loc = matchLocation(lead, plan);
   const base = { matchedLocation: loc.location || undefined };
   const wantsFacility = SUB_FACILITY.test(plan.businessType || '');
-  if (!wantsFacility && SUB_FACILITY.test(lead.name || '')) return { ...base, verification: 'rejected', matchReason: 'Part of a campus/building, not an organisation' };
+  const isExamGate = /\b(?:ies|gate)\s+(?:academy|coaching|classes|institute|forum|prep)\b/i.test(lead.name || '');
+  if (!wantsFacility && !isExamGate && SUB_FACILITY.test(lead.name || '')) {
+    return { ...base, verification: 'rejected', matchReason: 'Part of a campus/building, not an organisation' };
+  }
   if (!loc.ok) return { ...base, verification: 'rejected', matchReason: `Outside ${(plan.locations || [plan.location]).join(' / ')}` };
+
   const terms = planTerms(plan);
+  const typeTerms = extractTerms(plan.businessType || '');
   const text = [lead.name, lead.category, lead.companyType, lead.siteTitle].filter(Boolean).join(' | ');
+
   const hits = terms.filter((t) => t.re.test(text)).map((t) => t.word);
   const missing = terms.filter((t) => !hits.includes(t.word)).map((t) => t.word);
-  if (!terms.length || !missing.length) return { ...base, verification: 'verified', matchReason: terms.length ? `Matches ${hits.join(' + ')}` : 'Matches request' };
-  if (hits.length) return { ...base, verification: 'likely', matchReason: `Matches ${hits.join(' + ')}; no evidence for ${missing.join(', ')}` };
+  const typeHits = typeTerms.filter((t) => t.re.test(text)).map((t) => t.word);
+
+  // If every keyword of the plan is matched -> verified
+  if (!terms.length || !missing.length) {
+    return { ...base, verification: 'verified', matchReason: terms.length ? `Matches ${hits.join(' + ')}` : 'Matches request' };
+  }
+
+  // If at least one keyword is matched -> likely
+  if (hits.length) {
+    return { ...base, verification: 'likely', matchReason: `Matches ${hits.join(' + ')}; no evidence for ${missing.join(', ')}` };
+  }
+
+  // If no keywords matched, but it matches the general businessType (e.g. Coaching institute/center),
+  // keep as likely so website crawler and AI verification can evaluate it
+  if (typeHits.length) {
+    return { ...base, verification: 'likely', matchReason: `Matches ${typeHits.join(' + ')}; awaiting detail verification` };
+  }
+
   return { ...base, verification: 'rejected', matchReason: `No evidence it is ${plan.businessType}` };
 }
 
@@ -248,8 +282,9 @@ export async function aiVerify(query, plan, leads, log) {
     const batch = leads.slice(start, start + 40);
     try {
       const out = await llmJson(
-        'You are a strict B2B lead-verification agent. For each candidate decide if it truly is a ' +
+        'You are a B2B lead-verification agent. For each candidate decide if it matches the user request for ' +
           `"${plan.businessType}"${locations.length ? ` located in ${locations.join(' or ')}` : ''}. ` +
+          'If the request mentions multiple services or exams (e.g. NEET, JEE, Govt jobs), mark as "match" if it provides any of them or operates as a relevant organisation in that field. ' +
           'Use the evidence given and well-known public facts only; never guess. ' +
           'Return JSON {"results":[{"i":number,"verdict":"match"|"no_match"|"unsure","reason":"max 12 words"}]}.',
         JSON.stringify({

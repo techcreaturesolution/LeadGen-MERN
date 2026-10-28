@@ -7,7 +7,7 @@ import { Navbar } from '@/components/Navbar';
 import { SplashIntro } from '@/components/SplashIntro';
 import { HeroSection } from '@/components/HeroSection';
 
-// Lazy load below-the-fold sections to split code into chunks and reduce initial load time
+// Lazy load below-the-fold sections to split code into small async chunks
 const WhyUseUsSection = React.lazy(() =>
   import('@/components/WhyUseUsSection').then((m) => ({ default: m.WhyUseUsSection }))
 );
@@ -25,18 +25,22 @@ const Footer = React.lazy(() =>
 );
 
 export const LandingPage = () => {
+  // Always play the cinematic splash preloader on page load
   const [showSplash, setShowSplash] = useState(true);
 
-  // Force page to always load at the top (Hero Section) on refresh
+  const handleSplashComplete = () => {
+    setShowSplash(false);
+  };
+
   useEffect(() => {
     if ('scrollRestoration' in history) {
       history.scrollRestoration = 'manual';
     }
     window.scrollTo(0, 0);
 
-    // Initialize Lenis for smooth scrolling (crucial for premium GSAP storytelling)
+    // Initialize Lenis smooth scroll
     const lenis = new Lenis({
-      duration: 1.2,
+      duration: 1.0,
       easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
       orientation: 'vertical',
       gestureOrientation: 'vertical',
@@ -65,22 +69,22 @@ export const LandingPage = () => {
         {/* --- Global Cinematic Atmospheric Background --- */}
         <CinematicBackground />
 
-        {/* --- Splash Intro Screen --- */}
+        {/* --- Splash Intro Screen (Once per session) --- */}
         <AnimatePresence>
-          {showSplash && <SplashIntro onComplete={() => setShowSplash(false)} />}
+          {showSplash && <SplashIntro onComplete={handleSplashComplete} />}
         </AnimatePresence>
 
         {/* --- Top Navbar --- */}
         <Navbar />
 
         <main className="relative z-10">
-          {/* --- Hero Section (Eager loaded for instant LCP) --- */}
+          {/* --- Hero Section (Eager loaded for instantaneous LCP) --- */}
           <HeroSection />
 
           {/* --- Why Use Us Section --- */}
           <React.Suspense
             fallback={
-              <div className="min-h-screen w-full bg-transparent flex items-center justify-center text-zinc-500">
+              <div className="h-96 w-full bg-transparent flex items-center justify-center text-zinc-600 text-sm">
                 Loading advantages...
               </div>
             }
@@ -91,7 +95,7 @@ export const LandingPage = () => {
           {/* --- Aspects (Features) Section --- */}
           <React.Suspense
             fallback={
-              <div className="min-h-screen w-full bg-transparent flex items-center justify-center text-zinc-500">
+              <div className="h-96 w-full bg-transparent flex items-center justify-center text-zinc-600 text-sm">
                 Loading interactive engine...
               </div>
             }
@@ -102,7 +106,7 @@ export const LandingPage = () => {
           {/* --- Pipeline Workflow Section --- */}
           <React.Suspense
             fallback={
-              <div className="min-h-screen w-full bg-transparent flex items-center justify-center text-zinc-500">
+              <div className="h-96 w-full bg-transparent flex items-center justify-center text-zinc-600 text-sm">
                 Loading pipeline workflow...
               </div>
             }
@@ -113,7 +117,7 @@ export const LandingPage = () => {
           {/* --- Testimonials Section --- */}
           <React.Suspense
             fallback={
-              <div className="h-96 w-full bg-transparent flex items-center justify-center text-zinc-500">
+              <div className="h-80 w-full bg-transparent flex items-center justify-center text-zinc-600 text-sm">
                 Loading reviews...
               </div>
             }
@@ -124,7 +128,7 @@ export const LandingPage = () => {
           {/* --- Footer --- */}
           <React.Suspense
             fallback={
-              <div className="h-48 w-full bg-transparent flex items-center justify-center text-zinc-500">
+              <div className="h-32 w-full bg-transparent flex items-center justify-center text-zinc-600 text-sm">
                 Loading footer...
               </div>
             }

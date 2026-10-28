@@ -96,3 +96,31 @@ test('Excel report has unique rows and verification columns', async () => {
   assert.equal(sheet.getRow(2).getCell(col('Match')).value, 'Verified');
   assert.equal(sheet.getRow(2).getCell(col('Email Domain Check')).value, 'Mail server OK');
 });
+
+test('coaching institutes query keeps NEET/JEE/IAS and IES GATE Academy from being rejected', () => {
+  const plan = {
+    businessType: 'coaching institutes',
+    location: 'India',
+    locations: ['India'],
+    targetRole: 'generic',
+    keywords: ['NEET', 'JEE', 'NEETPG', 'government jobs'],
+  };
+  const v = (l) => assessRelevance(rec(l), plan);
+
+  // Matches business type directly (Coaching center / institute) -> likely (awaiting detail verification), not rejected!
+  assert.equal(v({ name: 'Helix Institute', category: 'Coaching center', address: 'Chandigarh, India' }).verification, 'likely');
+  assert.equal(v({ name: 'CS MENTORS', category: 'Coaching center', address: 'Delhi, India' }).verification, 'likely');
+
+  // Matches NEET/JEE keywords -> likely
+  assert.equal(v({ name: 'ALLEN Career Institute | IIT JEE, NEET', address: 'Kota, India' }).verification, 'likely');
+
+  // IES GATE Academy should not be dropped as campus gate
+  assert.notEqual(v({ name: 'IES GATE Academy', category: 'Coaching center', address: 'Delhi, India' }).verification, 'rejected');
+
+  // Educrat IAS Academy matches government job synonyms -> likely
+  assert.notEqual(v({ name: 'Educrat IAS Academy', category: 'Education center', address: 'Kolkata, India' }).verification, 'rejected');
+
+  // Unrelated business must still be rejected
+  assert.equal(v({ name: 'Sharma Sweets and Bakers', category: 'Restaurant', address: 'Delhi, India' }).verification, 'rejected');
+});
+

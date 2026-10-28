@@ -1,7 +1,7 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
-import { ArrowRight, Globe, Send, Mail, Zap } from 'lucide-react';
+import { ArrowRight, Globe, Send, Mail, Zap } from '@/components/icons';
 
 export const Footer = () => {
   return (

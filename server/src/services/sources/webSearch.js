@@ -60,7 +60,49 @@ async function bingHtml(query, num) {
   return out;
 }
 
+async function apifyGoogleSearch(query, num) {
+  const token = env.apify?.token;
+  const actorId = env.apify?.googleSearchResultScraper;
+  if (!token || !actorId) return [];
+
+  const { ApifyClient } = await import('apify-client');
+  const client = new ApifyClient({ token });
+
+  const input = {
+    queries: query,
+    searchTerms: [query],
+    maxItems: Math.min(num, 30),
+    maxPagesPerQuery: 1,
+    languageCode: 'en',
+  };
+
+  const run = await client.actor(actorId).call(input, { timeout: 60 });
+  const { items } = await client.dataset(run.defaultDatasetId).listItems();
+  const out = [];
+
+  for (const item of items || []) {
+    if (Array.isArray(item.organicResults)) {
+      for (const r of item.organicResults) {
+        out.push({
+          title: r.title || '',
+          link: r.url || r.link || '',
+          snippet: r.description || r.snippet || '',
+        });
+      }
+    } else {
+      out.push({
+        title: item.title || '',
+        link: item.url || item.link || '',
+        snippet: item.description || item.snippet || '',
+      });
+    }
+  }
+
+  return out.filter((r) => r.link);
+}
+
 export function webSearchProvider() {
+  if (env.apify?.token && env.apify?.googleSearchResultScraper) return 'apify_google_search';
   if (env.serpApiKey) return 'serpapi';
   if (env.googleCseKey && env.googleCseCx) return 'google_cse';
   if (env.enableFreeSearchFallback) return 'bing_html';
@@ -69,8 +111,19 @@ export function webSearchProvider() {
 
 export async function webSearch(query, num = 20) {
   const provider = webSearchProvider();
+  if (provider === 'apify_google_search') {
+    try {
+      const rows = await apifyGoogleSearch(query, num);
+      if (rows.length) return rows;
+    } catch {
+      // Graceful fallback to secondary search if Apify search actor fails/rate-limits
+    }
+    if (env.serpApiKey) return serpApi(query, num);
+    if (env.googleCseKey && env.googleCseCx) return googleCse(query, num);
+    if (env.enableFreeSearchFallback) return bingHtml(query, num);
+  }
   if (provider === 'serpapi') return serpApi(query, num);
   if (provider === 'google_cse') return googleCse(query, num);
   if (provider === 'bing_html') return bingHtml(query, num);
-  throw new Error('No web search provider configured (set SERPAPI_KEY or GOOGLE_CSE_KEY + GOOGLE_CSE_CX)');
+  throw new Error('No web search provider configured (set SERPAPI_KEY, GOOGLE_CSE_KEY, or APIFY_GOOGLE_SEARCH_RESULT_SCRAPER)');
 }

@@ -2,10 +2,10 @@ import { ApifyClient } from 'apify-client';
 
 // Initialize the ApifyClient with API token
 // Note: Make sure process.env.APIFY_TOKEN is loaded by your dotenv setup
-export const apifyEnabled = () => Boolean(process.env.APIFY_TOKEN);
+export const apifyEnabled = () => Boolean((process.env.APIFY_TOKEN || '').trim());
 
 const client = new ApifyClient({
-    token: process.env.APIFY_TOKEN,
+    token: (process.env.APIFY_TOKEN || '').trim(),
 });
 
 // Mapping Apify Company data to match our standard Company object

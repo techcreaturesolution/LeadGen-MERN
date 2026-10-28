@@ -42,6 +42,15 @@ export const env = {
     contactsPerCompany: Math.min(10, Math.max(1, Number(process.env.ENRICH_CONTACTS_PER_COMPANY || 5))),
   },
 
+  apify: {
+    token: (process.env.APIFY_TOKEN || '').trim(),
+    googleMapScraper: (process.env.APIFY_GOOGLEMAP_SCRAPER || '').trim(),
+    googleSearchResultScraper: (process.env.APIFY_GOOGLE_SEARCH_RESULT_SCRAPER || '').trim(),
+    linkedinProfile: (process.env.APIFY_LINKEDIN_PROFILE || '').trim(),
+    companyDetail: (process.env.APIFY_COMPANY_DETAIL || '').trim(),
+    contactDetail: (process.env.APIFY_CONTACT_DETAIL || '').trim(),
+  },
+
   adsense: {
     client: /^ca-pub-\d{10,20}$/.test(process.env.ADSENSE_CLIENT_ID || '') ? process.env.ADSENSE_CLIENT_ID : '',
     slots: {

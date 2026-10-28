@@ -82,14 +82,60 @@ async function serpApiMaps(textQuery, limit) {
   return results;
 }
 
+async function apifyGoogleMaps(textQuery, limit, log) {
+  const token = env.apify?.token;
+  const actorId = env.apify?.googleMapScraper;
+  if (!token || !actorId) return [];
+
+  const { ApifyClient } = await import('apify-client');
+  const client = new ApifyClient({ token });
+  const input = {
+    searchStringsArray: [textQuery],
+    maxCrawledPlacesPerSearch: Math.min(limit, 60),
+    language: 'en',
+    skipClosedPlaces: true,
+    maxReviews: 0,
+    maxImages: 0,
+  };
+
+  const run = await client.actor(actorId).call(input, { timeout: 120 });
+  const { items } = await client.dataset(run.defaultDatasetId).listItems();
+
+  return (items || [])
+    .map((p) => ({
+      name: p.title || p.name,
+      category: p.categoryName || p.category || (Array.isArray(p.categories) ? p.categories[0] : undefined),
+      address: p.address || [p.street, p.city, p.state, p.postalCode].filter(Boolean).join(', '),
+      city: p.city,
+      phone: p.phone || p.phoneUnformatted,
+      website: p.website || p.url,
+      rating: p.totalScore || p.rating,
+      reviewsCount: p.reviewsCount || p.reviews,
+      lat: p.location?.lat || p.latitude,
+      lng: p.location?.lng || p.longitude,
+      mapsUrl: p.url && p.url.includes('google.com/maps') ? p.url : (p.placeId ? `https://www.google.com/maps/place/?q=place_id:${p.placeId}` : undefined),
+      email: p.email || (Array.isArray(p.emails) && p.emails[0] ? p.emails[0] : undefined),
+      linkedinUrl: p.linkedinUrl || p.linkedIn,
+      instagramUrl: p.instagramUrl || p.instagram,
+      facebookUrl: p.facebookUrl || p.facebook,
+      source: 'google_maps',
+    }))
+    .filter((r) => r.name);
+}
+
 const PROVIDER_SEARCH = {
+  apify_google_maps: (textQuery, _plan, limit, log) => apifyGoogleMaps(textQuery, limit, log),
   google_places: (textQuery, _plan, limit) => placesTextSearch(textQuery, limit),
   serpapi_google_maps: (textQuery, _plan, limit) => serpApiMaps(textQuery, limit),
   openstreetmap: (_textQuery, plan, limit, log) => searchOsm(plan, limit, log),
 };
 
 export function mapsProviders() {
-  const list = [env.googleMapsApiKey && 'google_places', env.serpApiKey && 'serpapi_google_maps'].filter(Boolean);
+  const list = [
+    env.googleMapsApiKey && 'google_places',
+    env.serpApiKey && 'serpapi_google_maps',
+    env.apify?.token && env.apify?.googleMapScraper && 'apify_google_maps',
+  ].filter(Boolean);
   return list.length ? list : ['openstreetmap'];
 }
 

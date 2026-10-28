@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { api, errMsg } from '../lib/api.js';
+import { INDUSTRY_THEMES, isEmailHtml } from '../lib/industryTemplates.js';
 
 const MERGE_TAGS = [
   { tag: '{{business}}', label: 'Company name' },
@@ -15,6 +16,7 @@ const MERGE_TAGS = [
 export default function GenerateTemplateModal({ search, initialDraft, onClose, onTemplateSaved }) {
   const [draft, setDraft] = useState(initialDraft || { name: '', subject: '', body: '', researchSummary: '', keywords: [] });
   const [step, setStep] = useState('review'); // 'review' | 'saved'
+  const [activeTab, setActiveTab] = useState('preview'); // 'preview' | 'code'
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   const [savedTemplate, setSavedTemplate] = useState(null);
@@ -72,7 +74,7 @@ export default function GenerateTemplateModal({ search, initialDraft, onClose, o
     setDraft((prev) => ({ ...prev, body: newBody }));
   };
 
-  const sampleBusinessName = sampleLead?.name || 'ABC Realty';
+  const sampleBusinessName = sampleLead?.name || 'ABC Enterprises';
   const sampleCity = sampleLead?.city || 'Surat';
 
   const previewSubject = (draft?.subject || '')
@@ -86,15 +88,31 @@ export default function GenerateTemplateModal({ search, initialDraft, onClose, o
     .replace(/\{\{\s*my_name\}\}/gi, 'Your Name')
     .replace(/\{\{\s*my_email\}\}/gi, 'you@example.com');
 
+  const theme = INDUSTRY_THEMES[draft?.industry] || INDUSTRY_THEMES.general_professional || INDUSTRY_THEMES.general_b2b;
+  const isHtml = isEmailHtml(draft?.body);
+  const colors = draft?.colors || theme?.colors || {};
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 p-4" role="dialog" aria-modal="true">
-      <div className="card w-full max-w-2xl max-h-[90vh] overflow-y-auto space-y-4">
+      <div className="card w-full max-w-2xl max-h-[92vh] overflow-y-auto space-y-4">
         {/* Header */}
         <div className="flex items-start justify-between border-b border-slate-100 pb-3">
           <div>
-            <h2 className="text-lg font-semibold text-slate-800">Generated AI Email Template</h2>
-            <p className="text-xs text-slate-500">
-              For search: <span className="font-medium text-[#008762]">"{search?.query}"</span> ({search?.leadCount || 0} leads)
+            <div className="flex items-center gap-2">
+              <h2 className="text-lg font-semibold text-slate-800">Generated AI Email Template</h2>
+              <span
+                className="text-[11px] font-semibold px-2.5 py-0.5 rounded-full"
+                style={{
+                  backgroundColor: colors.badgeBg || theme.badgeBg,
+                  color: colors.badgeText || theme.badgeText,
+                  border: `1px solid ${colors.border || theme.border}`,
+                }}
+              >
+                {draft?.industryName || theme.name}
+              </span>
+            </div>
+            <p className="text-xs text-slate-500 mt-0.5">
+              Targeted for: <span className="font-medium text-[#008762]">"{search?.query}"</span> ({search?.leadCount || 0} leads)
             </p>
           </div>
           <button type="button" onClick={onClose} className="text-slate-400 hover:text-slate-600 text-lg leading-none p-1" aria-label="Close">
@@ -126,16 +144,31 @@ export default function GenerateTemplateModal({ search, initialDraft, onClose, o
                     ))}
                   </div>
                 )}
+                {(draft.visualObjects?.length > 0 || draft.visualPlan?.visualObjects?.length > 0) && (
+                  <div className="flex items-center gap-1.5 pt-1.5 border-t border-emerald-200/50 text-[11px] text-slate-600">
+                    <span className="font-semibold text-emerald-900">Visual Elements:</span>
+                    <div className="flex flex-wrap gap-1">
+                      {(draft.visualObjects || draft.visualPlan.visualObjects).slice(0, 4).map((obj) => (
+                        <span key={obj} className="badge bg-white/90 border border-emerald-200/80 text-slate-700 text-[10.5px]">
+                          {obj}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
             )}
 
             {/* Dynamic personalization notice */}
-            <div className="rounded-lg bg-blue-50/70 border border-blue-200/60 p-2.5 text-xs text-blue-800">
-              <b>Dynamic Personalization:</b> The variable <code className="font-mono bg-blue-100 px-1 py-0.5 rounded">{'{{business}}'}</code> will be automatically replaced with each recipient's actual company name when sending.
+            <div className="rounded-lg bg-blue-50/70 border border-blue-200/60 p-2.5 text-xs text-blue-800 flex items-center justify-between">
+              <span>
+                <b>Dynamic Personalization:</b> The variable <code className="font-mono bg-blue-100 px-1 py-0.5 rounded">{'{{business}}'}</code> will be automatically replaced with each recipient's actual company name.
+              </span>
+              <span className="text-[11px] font-medium text-blue-600 uppercase tracking-wider">1 common template</span>
             </div>
 
-            {/* Form Fields */}
-            <div className="space-y-3">
+            {/* Main Form Inputs: Name & Subject */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
               <div>
                 <label className="block text-xs font-medium text-slate-700 mb-1">Template Name</label>
                 <input
@@ -159,20 +192,83 @@ export default function GenerateTemplateModal({ search, initialDraft, onClose, o
                   disabled={saving}
                 />
               </div>
+            </div>
 
-              <div>
-                <div className="flex items-center justify-between mb-1">
-                  <label className="text-xs font-medium text-slate-700">Email Body</label>
+            {/* Tabs for Visual Single-Page Preview vs Code Editor */}
+            <div className="border-b border-slate-200 flex items-center justify-between pt-1">
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => setActiveTab('preview')}
+                  className={`text-xs font-semibold pb-2 border-b-2 transition-colors ${
+                    activeTab === 'preview'
+                      ? 'border-[#008762] text-[#008762]'
+                      : 'border-transparent text-slate-500 hover:text-slate-800'
+                  }`}
+                >
+                  Visual Single-Page Preview
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setActiveTab('code')}
+                  className={`text-xs font-semibold pb-2 border-b-2 transition-colors ${
+                    activeTab === 'code'
+                      ? 'border-[#008762] text-[#008762]'
+                      : 'border-transparent text-slate-500 hover:text-slate-800'
+                  }`}
+                >
+                  Edit HTML / Text
+                </button>
+              </div>
+              <span className="text-[11px] text-slate-400">
+                Design Target: ~350–550px single-page
+              </span>
+            </div>
+
+            {/* Tab 1: Visual Single-Page Preview */}
+            {activeTab === 'preview' && (
+              <div className="space-y-2">
+                <div className="rounded-lg border border-slate-200 bg-slate-50 p-2.5 text-xs flex items-center justify-between">
+                  <div className="truncate pr-2">
+                    <span className="font-semibold text-slate-600">Subject Preview: </span>
+                    <span className="font-medium text-slate-900">{previewSubject}</span>
+                  </div>
+                  <span className="text-[11px] text-slate-500 shrink-0">
+                    Lead: <b className="text-slate-700">{sampleBusinessName}</b>
+                  </span>
+                </div>
+
+                <div className="rounded-lg border border-slate-200 bg-slate-100/60 p-2 overflow-x-auto">
+                  {isHtml ? (
+                    <div
+                      className="mx-auto bg-white rounded shadow-xs"
+                      style={{ maxWidth: '580px' }}
+                      dangerouslySetInnerHTML={{ __html: previewBody }}
+                    />
+                  ) : (
+                    <div className="mx-auto max-w-[580px] bg-white rounded p-4 text-xs text-slate-700 whitespace-pre-line leading-relaxed shadow-xs">
+                      {previewBody}
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* Tab 2: Edit HTML / Text */}
+            {activeTab === 'code' && (
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <label className="text-xs font-medium text-slate-700">Email Body ({isHtml ? 'Email HTML' : 'Text'})</label>
                   <span className="text-xs text-slate-400">Click merge tags below to insert</span>
                 </div>
                 <textarea
                   ref={bodyRef}
-                  className="input min-h-[160px] font-mono text-xs leading-relaxed"
+                  className="input min-h-[220px] font-mono text-xs leading-relaxed"
                   value={draft.body}
                   onChange={(e) => setDraft((prev) => ({ ...prev, body: e.target.value }))}
                   disabled={saving}
                 />
-                <div className="flex flex-wrap gap-1.5 mt-1.5">
+                <div className="flex flex-wrap gap-1.5 pt-1">
                   {MERGE_TAGS.map(({ tag, label }) => (
                     <button
                       key={tag}
@@ -187,20 +283,7 @@ export default function GenerateTemplateModal({ search, initialDraft, onClose, o
                   ))}
                 </div>
               </div>
-            </div>
-
-            {/* Live Recipient Preview */}
-            <div className="rounded-lg border border-slate-200 bg-slate-50 p-3 space-y-1.5">
-              <div className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">
-                Sample Lead Preview (e.g. {sampleBusinessName})
-              </div>
-              <div className="text-xs font-semibold text-slate-800">
-                Subject: <span className="font-normal">{previewSubject}</span>
-              </div>
-              <div className="text-xs text-slate-700 whitespace-pre-line border-t border-slate-200/80 pt-2 font-sans leading-relaxed">
-                {previewBody}
-              </div>
-            </div>
+            )}
 
             {/* Actions */}
             <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-100">
@@ -235,7 +318,7 @@ export default function GenerateTemplateModal({ search, initialDraft, onClose, o
             <div>
               <h3 className="text-base font-semibold text-slate-800">Template Saved Successfully!</h3>
               <p className="text-xs text-slate-500 mt-1">
-                "{savedTemplate.name}" is now available in your Email Templates and ready to use in cold outreach campaigns.
+                "{savedTemplate.name}" is now saved in your Email Templates and ready to use in cold outreach campaigns.
               </p>
             </div>
 

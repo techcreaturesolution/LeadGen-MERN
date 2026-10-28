@@ -1,5 +1,13 @@
 @import "tailwindcss";
 
+@theme {
+  --animate-aurora-1: aurora-1 15s ease-in-out infinite alternate;
+  --animate-aurora-2: aurora-2 20s ease-in-out infinite alternate;
+  --animate-aurora-3: aurora-3 28s ease-in-out infinite alternate;
+  --animate-aurora-4: aurora-4 32s ease-in-out infinite alternate;
+  --animate-twinkle: twinkle 4s ease-in-out infinite;
+}
+
 @layer components {
   .btn { @apply inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition disabled:cursor-not-allowed disabled:opacity-50; }
   .btn-primary { @apply inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition disabled:cursor-not-allowed disabled:opacity-50 bg-[#008762] text-white hover:bg-[#006e50]; }
@@ -12,48 +20,118 @@
   .td { @apply px-3 py-2 align-top text-sm text-slate-700; }
 }
 
-@keyframes twinkle {
-  0%, 100% { opacity: 0.25; transform: scale(0.85); }
-  50% { opacity: 1; transform: scale(1.2); }
-}
-
 @keyframes aurora-1 {
-  0%, 100% { transform: translate(0, 0) scale(1); }
-  50% { transform: translate(12vw, 8vh) scale(1.15); }
+  0% {
+    transform: translate(-30vw, -10vh) rotate(-10deg) scale(1, 1);
+    opacity: 0.5;
+  }
+  25% {
+    transform: translate(10vw, 15vh) rotate(15deg) scale(1.2, 0.8);
+    opacity: 0.9;
+  }
+  50% {
+    transform: translate(30vw, -5vh) rotate(-20deg) scale(0.9, 1.3);
+    opacity: 0.6;
+  }
+  75% {
+    transform: translate(-10vw, -20vh) rotate(25deg) scale(1.4, 0.9);
+    opacity: 0.8;
+  }
+  100% {
+    transform: translate(-30vw, -10vh) rotate(-10deg) scale(1, 1);
+    opacity: 0.5;
+  }
 }
 
 @keyframes aurora-2 {
-  0%, 100% { transform: translate(0, 0) scale(1); }
-  50% { transform: translate(-8vw, -12vh) scale(1.2); }
+  0% {
+    transform: translate(20vw, 10vh) rotate(10deg) scale(1.1, 0.9);
+    opacity: 0.8;
+  }
+  33% {
+    transform: translate(-10vw, -15vh) rotate(-15deg) scale(1.3, 1.1);
+    opacity: 0.4;
+  }
+  66% {
+    transform: translate(-30vw, 10vh) rotate(25deg) scale(0.8, 1.4);
+    opacity: 0.9;
+  }
+  100% {
+    transform: translate(20vw, 10vh) rotate(10deg) scale(1.1, 0.9);
+    opacity: 0.8;
+  }
 }
 
 @keyframes aurora-3 {
-  0%, 100% { transform: translate(0, 0) scale(1.1); }
-  50% { transform: translate(16vw, -8vh) scale(0.9); }
+  0% {
+    transform: translate(-20vw, 5vh) rotate(0deg) scale(1.2, 1);
+    opacity: 0.7;
+  }
+  33% {
+    transform: translate(25vw, -15vh) rotate(-30deg) scale(0.9, 1.2);
+    opacity: 0.9;
+  }
+  66% {
+    transform: translate(10vw, 15vh) rotate(20deg) scale(1.4, 0.8);
+    opacity: 0.5;
+  }
+  100% {
+    transform: translate(-20vw, 5vh) rotate(0deg) scale(1.2, 1);
+    opacity: 0.7;
+  }
 }
 
 @keyframes aurora-4 {
-  0%, 100% { transform: translate(0, 0) scale(1); }
-  50% { transform: translate(-12vw, 12vh) scale(1.1); }
+  0% {
+    transform: translate(30vw, -10vh) rotate(-5deg) scale(1, 1);
+    opacity: 0.6;
+  }
+  25% {
+    transform: translate(0vw, 15vh) rotate(35deg) scale(1.3, 0.9);
+    opacity: 0.4;
+  }
+  50% {
+    transform: translate(-25vw, -5vh) rotate(-15deg) scale(0.8, 1.3);
+    opacity: 0.9;
+  }
+  75% {
+    transform: translate(15vw, -20vh) rotate(10deg) scale(1.2, 1.1);
+    opacity: 0.7;
+  }
+  100% {
+    transform: translate(30vw, -10vh) rotate(-5deg) scale(1, 1);
+    opacity: 0.6;
+  }
 }
 
-.animate-twinkle {
-  animation: twinkle 3.5s ease-in-out infinite;
+@keyframes twinkle {
+  0%, 100% {
+    opacity: 0.1;
+    transform: scale(0.8);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.2);
+  }
 }
 
 .animate-aurora-1 {
-  animation: aurora-1 18s ease-in-out infinite alternate;
+  animation: aurora-1 15s ease-in-out infinite alternate;
 }
 
 .animate-aurora-2 {
-  animation: aurora-2 22s ease-in-out infinite alternate;
+  animation: aurora-2 20s ease-in-out infinite alternate;
 }
 
 .animate-aurora-3 {
-  animation: aurora-3 25s ease-in-out infinite alternate;
+  animation: aurora-3 28s ease-in-out infinite alternate;
 }
 
 .animate-aurora-4 {
-  animation: aurora-4 20s ease-in-out infinite alternate;
+  animation: aurora-4 32s ease-in-out infinite alternate;
+}
+
+.animate-twinkle {
+  animation: twinkle 4s ease-in-out infinite;
 }
 

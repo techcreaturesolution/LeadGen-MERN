@@ -48,7 +48,36 @@ export function renderEmail({ subject, body }, recipient, sender) {
 
 const escapeHtml = (s) => s.replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
 
+export function isEmailHtml(text) {
+  return typeof text === 'string' && /<\s*(table|html|body|div\s+[^>]*style\s*=)/i.test(text);
+}
+
+export function htmlToPlainText(html) {
+  if (!isEmailHtml(html)) return String(html || '');
+  return String(html)
+    .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '')
+    .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, '')
+    .replace(/<svg[^>]*>[\s\S]*?<\/svg>/gi, '')
+    .replace(/<br\s*\/?>/gi, '\n')
+    .replace(/<\/p>/gi, '\n\n')
+    .replace(/<\/tr>/gi, '\n')
+    .replace(/<\/h[1-6]>/gi, '\n\n')
+    .replace(/<[^>]+>/g, ' ')
+    .replace(/&nbsp;/gi, ' ')
+    .replace(/&amp;/gi, '&')
+    .replace(/&lt;/gi, '<')
+    .replace(/&gt;/gi, '>')
+    .replace(/&quot;/gi, '"')
+    .replace(/&#39;/gi, "'")
+    .replace(/[ \t]+/g, ' ')
+    .replace(/\n\s+\n/g, '\n\n')
+    .trim();
+}
+
 export function textToHtml(text) {
+  if (isEmailHtml(text)) {
+    return String(text || '').trim();
+  }
   const linked = escapeHtml(text).replace(/\bhttps?:\/\/[^\s<]+[^\s<.,;:!?)]/g, (u) => `<a href="${u}">${u}</a>`);
   const paras = linked.split(/\n{2,}/).map((p) => `<p style="margin:0 0 14px">${p.replace(/\n/g, '<br>')}</p>`);
   return `<div style="font-family:Arial,Helvetica,sans-serif;font-size:14px;line-height:1.55;color:#1e293b">${paras.join('')}</div>`;

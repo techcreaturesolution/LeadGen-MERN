@@ -36,7 +36,7 @@ export function CinematicBackground() {
         )}
       </AnimatePresence>
 
-      <div className="fixed inset-0 pointer-events-none z-[-1] overflow-hidden">
+      <div className="fixed inset-0 pointer-events-none z-0 overflow-hidden">
         {/* Sky Gradient */}
         <motion.div
           className="absolute inset-0"

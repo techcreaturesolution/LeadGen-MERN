@@ -61,7 +61,7 @@ export const LandingPage = () => {
 
   return (
     <ThemeProvider>
-      <div className="relative min-h-screen bg-[#020205] text-zinc-100 font-sans selection:bg-blue-500/30 overflow-x-hidden">
+      <div className="relative min-h-screen bg-transparent text-zinc-100 font-sans selection:bg-blue-500/30 overflow-x-hidden">
         {/* --- Global Cinematic Atmospheric Background --- */}
         <CinematicBackground />
 

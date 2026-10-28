@@ -4,6 +4,7 @@ import GoogleAd from '../components/GoogleAd.jsx';
 import StatusBadge from '../components/StatusBadge.jsx';
 import GenerateTemplateModal from '../components/GenerateTemplateModal.jsx';
 import { api, daysLeft, errMsg, SOURCE_LABELS } from '../lib/api.js';
+import { assembleSinglePageHtmlTemplate, detectIndustryKey, INDUSTRY_THEMES, INDUSTRY_VISUAL_ASSETS } from '../lib/industryTemplates.js';
 
 export default function Searches() {
   const [data, setData] = useState({ items: [], total: 0, page: 1, limit: 20 });
@@ -56,15 +57,53 @@ export default function Searches() {
             ),
           ].slice(0, 5);
 
-          let body = rawDraft.body || `Hi {{business|there}} team,\n\nI came across {{business}} while looking at companies in ${search.plan?.location || 'your area'}.\n\nWould you be open to a quick 15-minute call?\n\nBest regards,\n{{my_name}}\n{{my_email}}`;
-          if (!body.includes('{{business')) {
-            body = `Hi {{business|there}} team,\n\n${body}`;
-          }
+          const indKey = detectIndustryKey(`${queryClean} ${leads.map((l) => l.category || '').join(' ')}`);
+          const theme = INDUSTRY_THEMES[indKey] || INDUSTRY_THEMES.general_professional;
+
+          let rawBody = rawDraft.body || '';
+          rawBody = rawBody.replace(/\{\{\s*company_name(\s*\|[^}]*)?\}\}/gi, (_m, fallback) => `{{business${fallback || ''}}}`);
+          const parts = rawBody.split(/\n{2,}/).filter(Boolean);
+          const isBakery = indKey === 'bakery_food';
+          const mainMessage = parts.slice(0, 2).join(' ') || (
+            isBakery
+              ? `I came across {{business}} while exploring popular bakeries and food shops in ${search.plan?.location || 'your area'}.`
+              : `I came across {{business}} while looking at companies in ${search.plan?.location || 'your area'}.`
+          );
+          const calloutMessage = parts[2] || (
+            isBakery
+              ? 'Would you be open to a brief conversation this week about customer reach and orders?'
+              : 'Would you be open to a quick 15-minute call this week?'
+          );
+          const ctaText = isBakery ? 'Connect With Us' : 'Explore Collaboration';
+          const heading = isBakery ? `Connecting with {{business}}` : `Strategic Solutions for {{business}}`;
+          const asset = INDUSTRY_VISUAL_ASSETS[indKey] || INDUSTRY_VISUAL_ASSETS.general_professional;
+
+          const singlePageHtml = assembleSinglePageHtmlTemplate({
+            theme,
+            colors: theme.colors,
+            heading,
+            mainMessage,
+            highlights: isBakery
+              ? ['Tailored for local bakery orders', 'Custom reach for {{city|your area}}']
+              : [`Specialized solutions for ${theme.name}`, `Custom services for {{city|your area}}`],
+            featureCards: asset?.defaultCards,
+            calloutMessage,
+            ctaText,
+            includeHeroSvg: true,
+          });
 
           draft = {
             name: rawDraft.name || `${queryClean} Outreach`,
-            subject: rawDraft.subject || `Business Solutions for {{business}}`,
-            body,
+            subject: (rawDraft.subject || (isBakery ? `Connecting with {{business}} in ${search.plan?.location || 'Gandhinagar'}` : `Business Solutions for {{business}}`)).replace(/\{\{\s*company_name(\s*\|[^}]*)?\}\}/gi, (_m, fallback) => `{{business${fallback || ''}}}`),
+            body: singlePageHtml,
+            industry: theme.key,
+            industryName: theme.name,
+            audience: theme.audience,
+            location: search.plan?.location || '',
+            designStyle: theme.designStyle,
+            colors: theme.colors,
+            visualObjects: asset?.visualObjects || [],
+            featureCards: asset?.defaultCards || [],
             researchSummary: `Target audience of ${leads.length || search.leadCount || 0} companies derived from "${queryClean}".`,
             keywords,
           };

@@ -77,9 +77,10 @@ export function sameCompany(lead, company) {
   return !city || !company.city || norm(company.city) === norm(city);
 }
 
-export async function enrichCompanies(leads, log, { organization = apolloEnabled() ? apolloOrganization : (apifyEnabled() ? apifyOrganization : null), max = env.enrichment.maxCompanies } = {}) {
+export async function enrichCompanies(leads, log, options = {}) {
+  const { organization = apolloEnabled() ? apolloOrganization : (apifyEnabled() ? apifyOrganization : null), max = env.enrichment.maxCompanies } = options;
   if (!organization || !max) return 0;
-  const isApify = !apolloEnabled() && apifyEnabled();
+  const isApify = organization === apifyOrganization || (!options.organization && !apolloEnabled() && apifyEnabled());
   const providerName = isApify ? 'Apify' : 'Apollo.io';
   const call = guarded(`${providerName} company enrichment`, log);
   const todo = leads.filter((l) => l.verification !== 'rejected' && (!l.website || !l.companyType)).sort(byQuality).slice(0, max);
@@ -107,18 +108,20 @@ export async function enrichContacts(
   leads,
   plan,
   log,
-  {
+  options = {},
+) {
+  const {
     domainSearch = hunterEnabled() ? hunterDomainSearch : null,
     people = apolloEnabled() ? apolloPeople : (apifyEnabled() ? apifyPeople : null),
     max = env.enrichment.maxDomainSearches,
     perCompany = env.enrichment.contactsPerCompany,
-  } = {},
-) {
+  } = options;
   const stats = { hunter: 0, apollo: 0, apify: 0 };
   const hasApify = apifyEnabled();
   if ((!domainSearch && !people && !hasApify) || !max) return stats;
+  const isApifyPeople = people === apifyPeople || (!options.people && !apolloEnabled() && apifyEnabled());
   const hunterCall = guarded('Hunter.io domain search', log);
-  const peopleCall = guarded(apolloEnabled() ? 'Apollo.io people search' : 'Apify HR search', log);
+  const peopleCall = guarded(isApifyPeople ? 'Apify HR search' : 'Apollo.io people search', log);
   const apifyContactCall = guarded('Apify Contact Details search', log);
   const todo = leads.filter((l) => l.domain).sort(byQuality).slice(0, max);
   const limit = pLimit(3);

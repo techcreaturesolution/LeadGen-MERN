@@ -72,7 +72,7 @@ export const env = {
   },
 
   emailMxCheck: bool(process.env.EMAIL_MX_CHECK, true),
-  leadMatchMode: process.env.LEAD_MATCH_MODE === 'balanced' ? 'balanced' : 'strict',
+  leadMatchMode: process.env.LEAD_MATCH_MODE === 'strict' ? 'strict' : 'balanced',
   dataRetentionDays: Math.max(1, Number(process.env.DATA_RETENTION_DAYS || 7)),
   sharedLeadCache: bool(process.env.SHARED_LEAD_CACHE, true),
 

@@ -192,6 +192,10 @@ const TERM_SYNONYMS = [
   [/^(neet|medical)$/i, 'neet|medical|aiims|neetpg|mbbs|pmt'],
   [/^(jee|iit)$/i, 'jee|iit|engineering|iit-jee|advance|mains|bitsat|mht-cet'],
   [/^(gate|ies)$/i, 'gate|ies|ese|psu|technical exam'],
+  [/^(marketing|advertising|seo|branding|media)$/i, 'marketing|advertis|media|creative|branding|\\bpr\\b|digital|seo|smo|agency|promot'],
+  [/^(solar|energy|renewable)$/i, 'solar|energy|sun|power|panel|renewable|inverter|photovoltaic'],
+  [/^(lawyers?|advocates?|legal|attorneys?|law)$/i, 'lawyer|advocate|legal|attorney|law firm|jurist'],
+  [/^(finance|loans?|funding|investments?)$/i, 'finance|financial|loan|invest|wealth|capital|credit|money'],
 ];
 
 const SUB_FACILITY = /\b(hostel|canteen|mess|parking|main gate|gate\s*(?:no\.?\s*\d+|\d+|[a-d]\b)|atm|bus stop|toilet|guest house|auditorium|playground|cafeteria|boys hostel|girls hostel|quarters)\b/i;
@@ -231,6 +235,15 @@ export function matchLocation(lead, plan) {
   if (hit) return { ok: true, location: hit };
   const area = locations.find((l) => l.toLowerCase() === String(lead.areaMatched || '').toLowerCase());
   if (area) return { ok: true, location: area };
+  if (lead.searchLocation) {
+    const sHit = locations.find((l) => lead.searchLocation.toLowerCase().includes(l.toLowerCase()));
+    if (sHit) {
+      const otherCities = ['surat', 'vadodara', 'rajkot', 'ahmedabad', 'gandhinagar', 'mumbai', 'pune', 'delhi', 'bangalore', 'bengaluru', 'hyderabad']
+        .filter((c) => !locations.some((loc) => loc.toLowerCase().includes(c)));
+      const hasConflict = otherCities.some((c) => text.includes(c));
+      if (!hasConflict) return { ok: true, location: sHit };
+    }
+  }
   if (!lead.address || !(lead.sources || []).includes('google_maps')) return { ok: true, location: lead.searchLocation || null };
   return { ok: false, location: null };
 }
@@ -285,6 +298,7 @@ export async function aiVerify(query, plan, leads, log) {
         'You are a B2B lead-verification agent. For each candidate decide if it matches the user request for ' +
           `"${plan.businessType}"${locations.length ? ` located in ${locations.join(' or ')}` : ''}. ` +
           'If the request mentions multiple services or exams (e.g. NEET, JEE, Govt jobs), mark as "match" if it provides any of them or operates as a relevant organisation in that field. ' +
+          'Mark "match" if it is an exact/strong fit (100% match). Mark "unsure" if it is partially related, adjacent, or a ~50% match (so it is kept as a likely lead). Only mark "no_match" if it is completely irrelevant or wrong industry. ' +
           'Use the evidence given and well-known public facts only; never guess. ' +
           'Return JSON {"results":[{"i":number,"verdict":"match"|"no_match"|"unsure","reason":"max 12 words"}]}.',
         JSON.stringify({

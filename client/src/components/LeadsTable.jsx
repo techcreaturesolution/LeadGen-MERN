@@ -1,3 +1,4 @@
+import { Fragment } from 'react';
 import { SOURCE_LABELS } from '../lib/api.js';
 import { EmailTypeBadge } from './StatusBadge.jsx';
 import { 
@@ -17,7 +18,15 @@ const scoreColor = (score) => {
 
 export default function LeadsTable({ leads, showRank = true, selected, onToggle, onToggleAll }) {
   const selectable = Boolean(selected);
-  const withEmail = leads.filter((l) => l.primaryEmail);
+  // Guarantee 100% exact matches (verified) appear first, followed by remaining 50% partial matches (likely)
+  const sortedLeads = [...leads].sort((a, b) => {
+    const rA = a.verification === 'verified' ? 0 : 1;
+    const rB = b.verification === 'verified' ? 0 : 1;
+    if (rA !== rB) return rA - rB;
+    return (a.rank || 0) - (b.rank || 0);
+  });
+
+  const withEmail = sortedLeads.filter((l) => l.primaryEmail);
   const allOn = selectable && withEmail.length > 0 && withEmail.every((l) => selected.has(l._id));
 
   if (!leads.length)
@@ -63,10 +72,41 @@ export default function LeadsTable({ leads, showRank = true, selected, onToggle,
 
         {/* ─── Table Body ─── */}
         <tbody>
-          {leads.map((l, idx) => {
+          {sortedLeads.map((l, idx) => {
             const isSelected = selectable && selected.has(l._id);
             const sc = scoreColor(l.score);
+            const showVerifiedHeader = idx === 0 && l.verification === 'verified';
+            const showLikelyHeader =
+              (idx > 0 && sortedLeads[idx - 1]?.verification === 'verified' && l.verification === 'likely') ||
+              (idx === 0 && l.verification === 'likely');
             return (
+              <Fragment key={l._id}>
+                {showVerifiedHeader && (
+                  <tr className="bg-emerald-50/90 border-b border-emerald-200">
+                    <td colSpan={selectable ? 8 : 7} className="px-4 py-2">
+                      <div className="flex items-center gap-2 text-xs font-bold text-emerald-800">
+                        <UserCheck size={14} className="text-[#008762]" />
+                        <span>Top 100% Exact Matches</span>
+                        <span className="text-[11px] font-normal text-emerald-600">
+                          ({sortedLeads.filter((x) => x.verification === 'verified').length} leads · Highest priority)
+                        </span>
+                      </div>
+                    </td>
+                  </tr>
+                )}
+                {showLikelyHeader && (
+                  <tr className="bg-amber-50/90 border-y border-amber-200">
+                    <td colSpan={selectable ? 8 : 7} className="px-4 py-2">
+                      <div className="flex items-center gap-2 text-xs font-bold text-amber-800">
+                        <AlertCircle size={14} className="text-amber-600" />
+                        <span>Remaining Partial Matches (~50% Match)</span>
+                        <span className="text-[11px] font-normal text-amber-700">
+                          ({sortedLeads.filter((x) => x.verification === 'likely').length} leads · Matching related terms/services)
+                        </span>
+                      </div>
+                    </td>
+                  </tr>
+                )}
               <tr
                 key={l._id}
                 className={`
@@ -120,7 +160,7 @@ export default function LeadsTable({ leads, showRank = true, selected, onToggle,
                               }`}
                             >
                               {l.verification === 'verified' ? <UserCheck size={10} /> : <AlertCircle size={10} />}
-                              {l.verification === 'verified' ? 'Verified' : 'Likely'}
+                              {l.verification === 'verified' ? 'Verified · 100%' : 'Likely · 50%'}
                               {l.aiVerified ? ' · AI' : ''}
                             </span>
                           )}
@@ -338,6 +378,7 @@ export default function LeadsTable({ leads, showRank = true, selected, onToggle,
                   </div>
                 </td>
               </tr>
+            </Fragment>
             );
           })}
         </tbody>

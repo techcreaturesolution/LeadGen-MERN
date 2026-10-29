@@ -24,7 +24,7 @@ export default function NewSearchForm() {
   const navigate = useNavigate();
   const [query, setQuery] = useState('');
   const [sources, setSources] = useState(['google_maps', 'linkedin', 'instagram']);
-  const [targetCount, setTargetCount] = useState(20);
+  const [targetCount, setTargetCount] = useState(50);
   const [caps, setCaps] = useState(null);
   const [plan, setPlan] = useState(null);
   const [busy, setBusy] = useState(false);
@@ -136,7 +136,7 @@ export default function NewSearchForm() {
         <div>
           <div className="mb-2 text-sm font-medium text-slate-700">How many leads?</div>
           <div className="flex gap-2">
-            {[20, 40, 60].map((n) => (
+            {[20, 50, 60].map((n) => (
               <button
                 key={n}
                 type="button"

@@ -52,7 +52,7 @@ const createLimiter = rateLimit({ windowMs: 60_000, limit: 10, standardHeaders: 
 const createSchema = z.object({
   query: z.string().trim().min(3).max(200),
   sources: z.array(z.enum(SOURCES)).min(1).default(['google_maps']),
-  targetCount: z.coerce.number().refine((n) => TARGET_COUNTS.includes(n), 'targetCount must be 20, 40 or 60').default(20),
+  targetCount: z.coerce.number().refine((n) => TARGET_COUNTS.includes(n), `targetCount must be ${TARGET_COUNTS.join(', ')}`).default(50),
 });
 
 router.get('/capabilities', (_req, res) => {

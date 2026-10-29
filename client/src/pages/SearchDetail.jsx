@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
-import { Download, Users } from 'lucide-react';
+import { Download, Users, UserCheck, AlertCircle } from 'lucide-react';
 import AdSlot from '../components/AdSlot.jsx';
 import GoogleAd from '../components/GoogleAd.jsx';
 import ExportButtons from '../components/ExportButtons.jsx';
@@ -16,6 +16,7 @@ export default function SearchDetail() {
   const { id } = useParams();
   const [job, setJob] = useState(null);
   const [leads, setLeads] = useState([]);
+  const [matchFilter, setMatchFilter] = useState('all');
   const [error, setError] = useState('');
   const [showLogs, setShowLogs] = useState(false);
   const [unlockTick, setUnlockTick] = useState(0);
@@ -95,6 +96,14 @@ export default function SearchDetail() {
   const p = job.progress || {};
   const stageIdx = Math.max(0, STAGES.indexOf(p.stage));
   const pct = job.status === 'completed' ? 100 : Math.round((stageIdx / (STAGES.length - 1)) * 100);
+
+  const verifiedCount = leads.filter((l) => l.verification === 'verified').length;
+  const likelyCount = leads.filter((l) => l.verification === 'likely').length;
+  const filteredLeads = leads.filter((l) => {
+    if (matchFilter === 'verified') return l.verification === 'verified';
+    if (matchFilter === 'likely') return l.verification === 'likely';
+    return true;
+  });
 
   return (
     <div className="space-y-5">
@@ -199,7 +208,7 @@ export default function SearchDetail() {
                 <h2 className="text-sm font-bold text-slate-800">
                   {selected.size > 0 ? `${selected.size} of ${leads.length} Leads Selected` : `Search Leads (${leads.length})`}
                 </h2>
-                <p className="text-[11px] text-slate-500">Verified leads discovered for "{job.query}"</p>
+                <p className="text-[11px] text-slate-500">Perfect 100% matches listed first, followed by ~50% partial matches for "{job.query}"</p>
               </div>
             </div>
 
@@ -224,8 +233,48 @@ export default function SearchDetail() {
               </button>
             </div>
           </div>
+          {leads.length > 0 && (
+            <div className="flex flex-wrap items-center gap-2 border-b border-slate-200 bg-slate-50/50 px-5 py-2.5 text-xs">
+              <span className="font-semibold text-slate-500 mr-1">Match Filter:</span>
+              <button
+                type="button"
+                onClick={() => setMatchFilter('all')}
+                className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-1 font-semibold transition-all cursor-pointer ${
+                  matchFilter === 'all'
+                    ? 'bg-[#008762] text-white shadow-sm'
+                    : 'bg-white text-slate-600 hover:bg-slate-100 border border-slate-200'
+                }`}
+              >
+                All Leads ({leads.length})
+              </button>
+              <button
+                type="button"
+                onClick={() => setMatchFilter('verified')}
+                className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-1 font-semibold transition-all cursor-pointer ${
+                  matchFilter === 'verified'
+                    ? 'bg-emerald-600 text-white shadow-sm'
+                    : 'bg-emerald-50 text-emerald-800 hover:bg-emerald-100 border border-emerald-200'
+                }`}
+              >
+                <UserCheck size={13} className={matchFilter === 'verified' ? 'text-white' : 'text-emerald-700'} />
+                100% Perfect Matches ({verifiedCount})
+              </button>
+              <button
+                type="button"
+                onClick={() => setMatchFilter('likely')}
+                className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-1 font-semibold transition-all cursor-pointer ${
+                  matchFilter === 'likely'
+                    ? 'bg-amber-600 text-white shadow-sm'
+                    : 'bg-amber-50 text-amber-800 hover:bg-amber-100 border border-amber-200'
+                }`}
+              >
+                <AlertCircle size={13} className={matchFilter === 'likely' ? 'text-white' : 'text-amber-600'} />
+                ~50% Partial Matches ({likelyCount})
+              </button>
+            </div>
+          )}
           <LeadsTable 
-            leads={leads} 
+            leads={filteredLeads} 
             showRank={true} 
             selected={selected} 
             onToggle={toggle} 

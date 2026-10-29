@@ -54,12 +54,16 @@ export async function runSearchJob(jobId) {
   const finalize = async (input, plan, quality) => {
     const target = job.targetCount;
     const seen = new Set();
-    const leads = input
+    const sorted = input
       .filter((l) => !seen.has(l.dedupeKey) && seen.add(l.dedupeKey))
-      .sort(bestFirst(plan))
-      .slice(0, target);
+      .sort(bestFirst(plan));
+    const leads = sorted.slice(0, Math.max(target, sorted.length));
     const reusedLeads = leads.filter((l) => l.reusedFrom);
-    if (leads.length < target) log('warn', `Only ${leads.length} of ${target} requested leads passed verification (${quality.likely || 0} likely matches held back in ${env.leadMatchMode} mode)`);
+    if (leads.length < target) {
+      log('warn', `Found ${leads.length} leads (${quality.verified || 0} verified 100% matches, ${quality.likely || 0} likely ~50% matches)`);
+    } else {
+      log('info', `Found ${leads.length} leads (${quality.verified || 0} verified 100% matches first, followed by ${quality.likely || 0} likely ~50% matches)`);
+    }
     progress.withEmail = leads.filter((l) => l.primaryEmail).length;
     progress.withRoleEmail = leads.filter((l) => l.primaryEmailCategory === plan.targetRole).length;
 
@@ -112,7 +116,7 @@ export async function runSearchJob(jobId) {
       return rows;
     };
     const runners = {
-      google_maps: () => searchGoogleMaps(plan, Math.min(60, target * 2), log),
+      google_maps: () => searchGoogleMaps(plan, Math.max(60, target), log),
       linkedin: perLocation(searchLinkedIn, Math.ceil(target / locations.length) + 5),
       instagram: perLocation(searchInstagram, Math.ceil(target / locations.length) + 5),
     };
@@ -247,7 +251,7 @@ export async function runSearchJob(jobId) {
     }
     quality.verified = leads.filter((l) => l.verification === 'verified').length;
     quality.likely = leads.filter((l) => l.verification === 'likely').length;
-    if (env.leadMatchMode !== 'balanced') leads = leads.filter((l) => l.verification === 'verified');
+    if (env.leadMatchMode === 'strict') leads = leads.filter((l) => l.verification === 'verified');
     await finalize(mergeWithCached(leads, cached.leads), plan, quality);
   } catch (err) {
     log('error', err.message);

@@ -35,7 +35,7 @@ export default function ExportButtons({ params = {}, disabled, path }) {
       </div>
       
       <div className="flex items-center gap-1">
-        {['20', '40', '60', 'all'].map((c) => (
+        {['20', '50', 'all'].map((c) => (
           <button 
             key={c} 
             type="button" 

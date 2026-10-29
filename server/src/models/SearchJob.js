@@ -1,14 +1,14 @@
 import mongoose from 'mongoose';
 
 export const SOURCES = ['google_maps', 'linkedin', 'instagram'];
-export const TARGET_COUNTS = [20, 40, 60];
+export const TARGET_COUNTS = [20, 40, 50, 60];
 
 const searchJobSchema = new mongoose.Schema(
   {
     owner: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true, index: true },
     query: { type: String, required: true, trim: true },
     sources: [{ type: String, enum: SOURCES }],
-    targetCount: { type: Number, enum: TARGET_COUNTS, default: 20 },
+    targetCount: { type: Number, enum: TARGET_COUNTS, default: 50 },
     plan: {
       businessType: String,
       location: String,

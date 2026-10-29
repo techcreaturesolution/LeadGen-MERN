@@ -9,7 +9,7 @@ import { HttpError } from '../utils/httpError.js';
 const router = Router();
 
 export const exportSchema = z.object({
-  count: z.enum(['20', '40', '60', 'all']).default('20'),
+  count: z.enum(['20', '40', '50', '60', 'all']).default('all'),
   format: z.enum(EXPORT_FORMATS).default('xlsx'),
 });
 

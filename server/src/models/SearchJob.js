@@ -1,7 +1,7 @@
 import mongoose from 'mongoose';
 
 export const SOURCES = ['google_maps', 'linkedin', 'instagram'];
-export const TARGET_COUNTS = [20, 40, 50, 60];
+export const TARGET_COUNTS = [20, 40, 50, 60, 150];
 
 const searchJobSchema = new mongoose.Schema(
   {

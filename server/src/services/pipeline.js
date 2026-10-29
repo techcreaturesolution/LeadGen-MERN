@@ -116,7 +116,7 @@ export async function runSearchJob(jobId) {
       return rows;
     };
     const runners = {
-      google_maps: () => searchGoogleMaps(plan, Math.max(60, target), log),
+      google_maps: () => searchGoogleMaps(plan, Math.max(80, target), log),
       linkedin: perLocation(searchLinkedIn, Math.ceil(target / locations.length) + 5),
       instagram: perLocation(searchInstagram, Math.ceil(target / locations.length) + 5),
     };

@@ -136,7 +136,7 @@ export default function NewSearchForm() {
         <div>
           <div className="mb-2 text-sm font-medium text-slate-700">How many leads?</div>
           <div className="flex gap-2">
-            {[20, 50, 60].map((n) => (
+            {[20, 50, 60, 150].map((n) => (
               <button
                 key={n}
                 type="button"

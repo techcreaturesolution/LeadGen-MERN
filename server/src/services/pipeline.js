@@ -218,7 +218,7 @@ export async function runSearchJob(jobId) {
     quality.duplicatesRemoved += removed;
     for (const l of leads) Object.assign(l, assessRelevance(l, plan));
     if (llmEnabled()) {
-      const candidatesForAi = leads.filter((l) => l.verification !== 'rejected').slice(0, Math.max(target * 2, 40));
+      const candidatesForAi = leads.filter((l) => l.verification !== 'rejected').slice(0, Math.max(target * 2, 60));
       const changed = await aiVerify(job.query, plan, candidatesForAi, log);
       log('info', `AI verification agent reviewed ${candidatesForAi.length} businesses (${changed} changed)`);
     }

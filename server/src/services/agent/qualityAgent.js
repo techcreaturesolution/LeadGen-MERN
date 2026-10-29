@@ -186,11 +186,11 @@ const TERM_SYNONYMS = [
   [/^pharma(ceuticals?)?$/i, 'pharma|drug|healthcare|life ?science|laborator'],
   [/^(manufactur\w*|factor(y|ies))$/i, 'manufactur|industr|engineering|works|fabricat|products|factory'],
   [/^(ca|chartered|accountants?)$/i, 'chartered accountant|\\bca\\b|& co|associates|accountan'],
-  [/^(coachings?|institutes?|classes|academ(y|ies)|tutorials?|mentors?)$/i, 'coaching|institute|academy|classes|tutorials?|mentors?|study group|education|learning|prep|tuition|training centre|training center'],
+  [/^(coachings?|institutes?|classes|classess|academ(y|ies)|tutorials?|mentors?)$/i, 'coaching|institute|academy|classes|tutorials?|mentors?|study group|education|learning|prep|tuition|training centre|training center'],
   [/^(government|govt|sarkari|jobs?)$/i, 'government|govt|sarkari|job|recruitment|civil services|ias|ips|upsc|ssc|psu|bank(ing)?|ibps|rrb|railway|exam'],
   [/^(ias|upsc|civil)$/i, 'ias|upsc|civil services|ips|ifs|state psc|gpsc|mpsc|uppsc|administrative'],
-  [/^(neet|medical)$/i, 'neet|medical|aiims|neetpg|mbbs|pmt'],
-  [/^(jee|iit)$/i, 'jee|iit|engineering|iit-jee|advance|mains|bitsat|mht-cet'],
+  [/^(neet|medical|neetpg)$/i, 'neet|medical|aiims|neetpg|mbbs|pmt'],
+  [/^(jee|iit|jeee)$/i, 'jee|iit|engineering|iit-jee|advance|mains|bitsat|mht-cet'],
   [/^(gate|ies)$/i, 'gate|ies|ese|psu|technical exam'],
   [/^(marketing|advertising|seo|branding|media)$/i, 'marketing|advertis|media|creative|branding|\\bpr\\b|digital|seo|smo|agency|promot'],
   [/^(solar|energy|renewable)$/i, 'solar|energy|sun|power|panel|renewable|inverter|photovoltaic'],
@@ -211,11 +211,11 @@ function stem(word) {
 }
 
 export function extractTerms(inputs) {
-  const list = Array.isArray(inputs) ? inputs : String(inputs || '').split(/\s+/);
+  const list = Array.isArray(inputs) ? inputs : String(inputs || '').split(/[\s,;/|]+/);
   const words = list
-    .flatMap((k) => String(k).split(/\s+/))
-    .map((w) => w.replace(/[^a-z0-9.&-]/gi, ''))
-    .filter((w) => w.length > 1 && !/^(companies|company|firms?|businesses|agenc(y|ies)|details?|list|top|best|near|for|with|and|the)$/i.test(w));
+    .flatMap((k) => String(k).split(/[\s,;/|]+/))
+    .map((w) => w.replace(/[^a-z0-9.&-]/gi, '').trim())
+    .filter((w) => w.length > 1 && !/^(companies|company|firms?|businesses|agenc(y|ies)|details?|list|top|best|near|for|from|with|and|or|the|who|whom|which|that|take|takes|taking|provide|provides|providing|in|at|on|by)$/i.test(w));
   return [...new Set(words.map((w) => w.toLowerCase()))].map((w) => {
     const syn = TERM_SYNONYMS.find(([re]) => re.test(w));
     return { word: w, re: new RegExp(syn ? syn[1] : stem(w), 'i') };
@@ -269,18 +269,18 @@ export function assessRelevance(lead, plan) {
 
   // If every keyword of the plan is matched -> verified
   if (!terms.length || !missing.length) {
-    return { ...base, verification: 'verified', matchReason: terms.length ? `Matches ${hits.join(' + ')}` : 'Matches request' };
+    return { ...base, verification: 'verified', matchPercent: 100, matchReason: terms.length ? `Matches ${hits.join(' + ')}` : 'Matches request' };
   }
 
   // If at least one keyword is matched -> likely
   if (hits.length) {
-    return { ...base, verification: 'likely', matchReason: `Matches ${hits.join(' + ')}; no evidence for ${missing.join(', ')}` };
+    return { ...base, verification: 'likely', matchPercent: 50, matchReason: `Matches ${hits.join(' + ')}; partial match (~50%)` };
   }
 
   // If no keywords matched, but it matches the general businessType (e.g. Coaching institute/center),
   // keep as likely so website crawler and AI verification can evaluate it
   if (typeHits.length) {
-    return { ...base, verification: 'likely', matchReason: `Matches ${typeHits.join(' + ')}; awaiting detail verification` };
+    return { ...base, verification: 'likely', matchPercent: 50, matchReason: `Matches ${typeHits.join(' + ')}; partial match (~50%)` };
   }
 
   return { ...base, verification: 'rejected', matchReason: `No evidence it is ${plan.businessType}` };
@@ -295,12 +295,12 @@ export async function aiVerify(query, plan, leads, log) {
     const batch = leads.slice(start, start + 40);
     try {
       const out = await llmJson(
-        'You are a B2B lead-verification agent. For each candidate decide if it matches the user request for ' +
+        'You are an expert B2B lead-qualification agent. Classify candidates into: "exact" (100% perfect match satisfying primary requested services/exams), "partial" (~50% partial or adjacent match like NEET-only, JEE-only, Govt-jobs-only, related coaching; MUST be kept as a partial match), or "no_match" (completely unrelated like restaurant, hospital, retail shop, car repair, spam). ' +
           `"${plan.businessType}"${locations.length ? ` located in ${locations.join(' or ')}` : ''}. ` +
-          'If the request mentions multiple services or exams (e.g. NEET, JEE, Govt jobs), mark as "match" if it provides any of them or operates as a relevant organisation in that field. ' +
-          'Mark "match" if it is an exact/strong fit (100% match). Mark "unsure" if it is partially related, adjacent, or a ~50% match (so it is kept as a likely lead). Only mark "no_match" if it is completely irrelevant or wrong industry. ' +
+          'If request mentions multiple services or exams (e.g. NEET, JEE, Govt jobs), mark candidates providing multiple/all as "exact" (100% match); mark candidates providing ANY ONE of them or related classes as "partial" (~50% match). ' +
+          'Candidates providing ANY ONE requested exam or related coaching MUST be marked "partial". ' +
           'Use the evidence given and well-known public facts only; never guess. ' +
-          'Return JSON {"results":[{"i":number,"verdict":"match"|"no_match"|"unsure","reason":"max 12 words"}]}.',
+          'Return JSON {"results":[{"i":number,"verdict":"exact"|"partial"|"no_match","reason":"max 10 words"}]}.',
         JSON.stringify({
           request: query,
           candidates: batch.map((l, i) => ({ i, name: l.name, category: l.category, address: l.address, website: l.website, siteTitle: l.siteTitle, siteDescription: l.siteDescription?.slice(0, 200) })),
@@ -311,15 +311,31 @@ export async function aiVerify(query, plan, leads, log) {
         const l = batch[Number(r.i)];
         if (!l) continue;
         const reason = String(r.reason || '').slice(0, 120);
-        if (r.verdict === 'no_match') {
-          l.verification = 'rejected';
-          l.matchReason = `AI: ${reason || 'not a match'}`;
-          changed += 1;
-        } else if (r.verdict === 'match') {
-          if (l.verification === 'likely') changed += 1;
+        const verdict = String(r.verdict || '').toLowerCase().trim();
+
+        if (verdict === 'exact' || verdict === 'match') {
+          if (l.verification !== 'verified') changed += 1;
           l.verification = 'verified';
+          l.matchPercent = 100;
           l.aiVerified = true;
-          if (reason) l.matchReason = `${l.matchReason}; AI: ${reason}`;
+          l.matchReason = reason ? `AI verified (100% exact match): ${reason}` : 'AI verified: 100% exact match';
+        } else if (verdict === 'partial' || verdict === 'likely' || verdict === 'unsure') {
+          if (l.verification !== 'likely') changed += 1;
+          l.verification = 'likely';
+          l.matchPercent = 50;
+          l.aiVerified = true;
+          l.matchReason = reason ? `AI partial match (~50%): ${reason}` : 'AI qualified: ~50% partial match';
+        } else if (verdict === 'no_match') {
+          if (l.verification === 'likely' || l.verification === 'verified' || (l.matchPercent && l.matchPercent >= 50)) {
+            l.verification = 'likely';
+            l.matchPercent = 50;
+            l.aiVerified = true;
+            l.matchReason = reason ? `AI partial review (~50% match): ${reason}` : l.matchReason;
+          } else {
+            l.verification = 'rejected';
+            l.matchReason = `AI: ${reason || 'not a match'}`;
+            changed += 1;
+          }
         }
       }
     } catch (err) {

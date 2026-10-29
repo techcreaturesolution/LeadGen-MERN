@@ -82,16 +82,25 @@ async function serpApiMaps(textQuery, limit) {
   return results;
 }
 
-async function apifyGoogleMaps(textQuery, limit, log) {
+async function apifyGoogleMaps(textQuery, limit, log, plan) {
   const token = env.apify?.token;
   const actorId = env.apify?.googleMapScraper;
   if (!token || !actorId) return [];
 
+  const rawQueries = (plan?.searchQueries?.length ? plan.searchQueries : [textQuery]).filter(Boolean).slice(0, 3);
+  const queries = (rawQueries.length ? rawQueries : [textQuery]).map((q) => {
+    if (plan?.location && !q.toLowerCase().includes(plan.location.toLowerCase())) {
+      return `${q} in ${plan.location}`;
+    }
+    return q;
+  });
+  const perQueryLimit = Math.max(20, Math.ceil(limit / queries.length));
+
   const { ApifyClient } = await import('apify-client');
   const client = new ApifyClient({ token });
   const input = {
-    searchStringsArray: [textQuery],
-    maxCrawledPlacesPerSearch: Math.min(limit, 60),
+    searchStringsArray: queries,
+    maxCrawledPlacesPerSearch: Math.min(perQueryLimit, 60),
     language: 'en',
     skipClosedPlaces: true,
     maxReviews: 0,
@@ -124,9 +133,33 @@ async function apifyGoogleMaps(textQuery, limit, log) {
 }
 
 const PROVIDER_SEARCH = {
-  apify_google_maps: (textQuery, _plan, limit, log) => apifyGoogleMaps(textQuery, limit, log),
-  google_places: (textQuery, _plan, limit) => placesTextSearch(textQuery, limit),
-  serpapi_google_maps: (textQuery, _plan, limit) => serpApiMaps(textQuery, limit),
+  apify_google_maps: (textQuery, plan, limit, log) => apifyGoogleMaps(textQuery, limit, log, plan),
+  google_places: async (textQuery, plan, limit) => {
+    const rawQueries = (plan?.searchQueries?.length ? plan.searchQueries : [textQuery]).filter(Boolean).slice(0, 3);
+    const queries = rawQueries.length ? rawQueries : [textQuery];
+    const perQueryLimit = Math.max(20, Math.ceil(limit / queries.length));
+    const results = [];
+    for (const q of queries) {
+      const qWithLoc = plan?.location && !q.toLowerCase().includes(plan.location.toLowerCase()) ? `${q} in ${plan.location}` : q;
+      const res = await placesTextSearch(qWithLoc, perQueryLimit);
+      results.push(...res);
+      if (results.length >= limit) break;
+    }
+    return results;
+  },
+  serpapi_google_maps: async (textQuery, plan, limit) => {
+    const rawQueries = (plan?.searchQueries?.length ? plan.searchQueries : [textQuery]).filter(Boolean).slice(0, 3);
+    const queries = rawQueries.length ? rawQueries : [textQuery];
+    const perQueryLimit = Math.max(20, Math.ceil(limit / queries.length));
+    const results = [];
+    for (const q of queries) {
+      const qWithLoc = plan?.location && !q.toLowerCase().includes(plan.location.toLowerCase()) ? `${q} in ${plan.location}` : q;
+      const res = await serpApiMaps(qWithLoc, perQueryLimit);
+      results.push(...res);
+      if (results.length >= limit) break;
+    }
+    return results;
+  },
   openstreetmap: (_textQuery, plan, limit, log) => searchOsm(plan, limit, log),
 };
 

@@ -145,11 +145,25 @@ export async function runSearchJob(jobId) {
     let { leads, removed } = dedupeLeads(records);
     quality.duplicatesRemoved += removed + (candidates.length - records.length);
     for (const l of leads) Object.assign(l, assessRelevance(l, plan));
-    const early = leads.filter((l) => l.verification === 'rejected' && !l.website);
-    quality.rejected += early.length;
-    leads = leads.filter((l) => !(l.verification === 'rejected' && !l.website));
+    // Hard-drop only real non-businesses (hostel, canteen, campus facility) that have no website.
+    // All other leads are preserved — even rule-rejected ones are kept as 'likely' so the user
+    // sees ALL unique scraped businesses (verified first, then partial, then rest).
+    const hardDropped = leads.filter(
+      (l) => l.verification === 'rejected' && !l.website &&
+        /campus|building|hostel|canteen|parking|facility|not an organisation/i.test(l.matchReason || ''),
+    );
+    hardDropped.forEach(() => { quality.rejected += 1; });
+    leads = leads.filter((l) => !hardDropped.includes(l));
+    // Demote remaining 'rejected' to 'likely' so ALL unique businesses stay in the output
+    leads.forEach((l) => {
+      if (l.verification === 'rejected') {
+        l.verification = 'likely';
+        l.matchPercent = l.matchPercent ?? 30;
+        l.matchReason = l.matchReason ? `Unverified: ${l.matchReason}` : 'Unverified match';
+      }
+    });
     progress.discovered = leads.length;
-    log('info', `Merged ${candidates.length} results into ${leads.length} unique businesses (${removed} duplicates, ${early.length} off-target dropped)`);
+    log('info', `Merged ${candidates.length} results into ${leads.length} unique businesses (${removed} duplicates, ${hardDropped.length} off-target dropped)`);
 
     progress.stage = 'resolving websites';
     await flush(true);
@@ -217,15 +231,29 @@ export async function runSearchJob(jobId) {
     ({ leads, removed } = dedupeLeads(leads));
     quality.duplicatesRemoved += removed;
     for (const l of leads) Object.assign(l, assessRelevance(l, plan));
+    // Promote any remaining 'rejected' to 'likely' BEFORE AI so they get a chance to be upgraded
+    leads.forEach((l) => {
+      if (l.verification === 'rejected') {
+        l.verification = 'likely';
+        l.matchPercent = l.matchPercent ?? 30;
+        l.matchReason = l.matchReason ? `Unverified: ${l.matchReason}` : 'Unverified match';
+      }
+    });
     if (llmEnabled()) {
       const candidatesForAi = leads.filter((l) => l.verification !== 'rejected').slice(0, Math.max(target * 2, 60));
       const changed = await aiVerify(job.query, plan, candidatesForAi, log);
       log('info', `AI verification agent reviewed ${candidatesForAi.length} businesses (${changed} changed)`);
     }
-    const rejected = leads.filter((l) => l.verification === 'rejected');
-    quality.rejected += rejected.length;
-    rejected.slice(0, 8).forEach((l) => log('info', `Dropped "${l.name}": ${l.matchReason}`));
-    leads = leads.filter((l) => l.verification !== 'rejected');
+    // After AI, any remaining 'rejected' are still kept as 'likely' — never drop scraped unique businesses
+    leads.forEach((l) => {
+      if (l.verification === 'rejected') {
+        l.verification = 'likely';
+        l.matchPercent = l.matchPercent ?? 30;
+        l.matchReason = l.matchReason ? `Unverified: ${l.matchReason}` : 'Unverified match';
+      }
+    });
+    const rejectedCount = leads.filter((l) => l.verification === 'rejected').length;
+    if (rejectedCount) quality.rejected += rejectedCount;
 
     if (enrichmentProviders().length) {
       progress.stage = 'finding contacts';
